@@ -1,0 +1,167 @@
+@extends('frontend.giaodien10.layouts.default')
+@section('content')
+<div id="maincontainer">
+   <div class="container">
+      <div class="row">
+         <!-- San pham moi nhat -->
+         <div class="col-lg-9">
+            <!-- Slider -->
+            {!! showWidget('Block left top content') !!}
+            <!-- End -->
+            <!-- Widget 33333 -->
+            {!! showWidget('Block left bottom content') !!}
+            <!-- End Widget 33333 -->
+            <section class="row mt30" id="featured">
+               <h1 class="heading1"><span class="maintext">Sản phẩm mới nhất</span></h1>
+               <ul class="thumbnails">
+                  @foreach( $product_new as $product )
+                  <li class="col-lg-4 col-sm-6">
+                     <a class="prdocutname" href="{{ url('collections/'.$product['product_slug']) }}" title="{{ $product['product_title'] }}">{{ $product['product_title'] }}</a>
+                     <div class="thumbnail">
+                        <span class="sale tooltip-test">Sale</span>
+                        <a class="img-product" href="{{ url('collections/'.$product['product_slug']) }}" title="{{ $product['product_title'] }}">
+                        <img alt="{{ $product['product_title'] }}" src="{{ get_image_url($product['product_featured_image']) }}"/>
+                        </a>
+                        <div class="pricetag">
+                           <span class="spiral"></span><a href="#" onclick="order({{ $product['product_id'] }})" class="productcart">Mua ngay</a>
+                           <div class="price">
+                              <div class="pricenew">{{ number_format($product['price_new'],0,'.','.') }}₫</div>
+                              <div class="priceold">{{ number_format($product['price_old'],0,'.','.') }}₫</div>
+                           </div>
+                           <form id="formOrder{{ $product['product_id'] }}" action="{{ url('cart/order/'.$product['product_slug']) }}" method="post">
+                              <input type="hidden" name="_token" value="{{ csrf_token() }}" />
+                              <input type="hidden" name="quantity" value="1" />
+                          </form>
+                        </div>
+                     </div>
+                  </li>
+                  @endforeach
+               </ul>
+               <div class="row">
+                  <div class="col-lg-12 pull-center">
+                  </div>
+               </div>
+            </section>
+            <!-- Nhom san pham -->
+            <section class="row mt30" id="featured">
+               <h1 class="heading1"><span class="maintext">Sản phẩm nổi bật</span></h1>
+               <ul class="thumbnails">
+                  @foreach( $get_product_by_group['arrPosts'] as $product )
+                  <li class="col-lg-4 col-sm-6">
+                     <a class="prdocutname" href="{{ url('collections/'.$product['product_slug']) }}" title="{{ $product['product_title'] }}">{{ $product['product_title'] }}</a>
+                     <div class="thumbnail">
+                        <span class="sale tooltip-test">Sale</span>
+                        <a class="img-product" href="{{ url('collections/'.$product['product_slug']) }}" title="{{ $product['product_title'] }}">
+                        <img alt="{{ $product['product_title'] }}" src="{{ get_image_url($product['post_featured_image']) }}"/>
+                        </a>
+                        <div class="pricetag">
+                           <span class="spiral"></span><a href="#" onclick="order({{ $product['product_id'] }})" class="productcart">Mua ngay</a>
+                           <div class="price">
+                              <div class="pricenew">{{ number_format($product['price_new'],0,'.','.') }}₫</div>
+                              <div class="priceold">{{ number_format($product['price_old'],0,'.','.') }}₫</div>
+                           </div>
+                           <form id="formOrder{{ $product['product_id'] }}" action="{{ url('cart/order/'.$product['product_slug']) }}" method="post">
+                              <input type="hidden" name="_token" value="{{ csrf_token() }}" />
+                              <input type="hidden" name="quantity" value="1" />
+                          </form>
+                        </div>
+                     </div>
+                  </li>
+                  @endforeach
+               </ul>
+               <div class="row">
+                  <div class="col-lg-12 pull-center">
+                  </div>
+               </div>
+            </section>
+         <!-- End -->
+         </div>
+         <!-- End -->
+         <aside class="col-lg-3">
+            <!-- Category-->
+            <!-- Widget 11111 -->
+            {!! showWidget('Block right content') !!}
+            
+            <!-- <div class="sidewidt">
+               <h2 class="heading2"><span>Danh Mục sản phẩm</span></h2>
+               <ul class="nav nav-list categories">
+                  <li class="item  first">
+                     <a href="/collections/thoi-trang-nu"> Thời trang nữ</a>
+                  </li>
+                  <li class="item  ">
+                     <a href="/collections/thoi-trang-nam"> Thời trang nam</a>
+                  </li>
+                  <li class="item  ">
+                     <a href="/collections/cong-nghe-phu-kien"> Công nghệ phụ kiện</a>
+                  </li>
+                  <li class="item  last">
+                     <a href="/collections/thoi-trang-be"> Thời trang bé</a>
+                  </li>
+               </ul>
+            </div> -->
+            <!-- End Widget 11111 -->
+
+            <!-- Best Seller-->
+            <!-- Widget 22222 -->
+     <?php /*       {!!showWidget('widget22222')!!} */ ?>
+            <!--
+            <div class="sidewidt">
+               <div class="product-list clearfix ">
+                  <h2 class="heading2">Sản phẩm bán chạy 1</h2>
+                  <ul class="bestseller">
+                     <li>
+                        <img width="50" height="50"  src="//hstatic.net/025/1000032025/1/2015/8-12/dam-duoi-ca_large.png" alt="" />
+                        <a class="productname" href="/collections/san-pham-noi-bat/products/dam-cong-so-hoa-tiet-elly-1" title="Bộ set váy áo đính nút">Bộ set váy áo đính nút</a>
+                        <span class="price">320,000₫</span>
+                        <p class="priceold">750,000₫</p>
+                        <div class="clear"></div>
+                     </li>
+                     <li>
+                        <img width="50" height="50"  src="//hstatic.net/025/1000032025/1/2015/8-7/b1_large.png" alt="" />
+                        <a class="productname" href="/collections/san-pham-noi-bat/products/product-name-here-5" title="Đầm chấm bi cổ V">Đầm chấm bi cổ V</a>
+                        <span class="price">450,000₫</span>
+                        <div class="clear"></div>
+                     </li>
+                     <li>
+                        <img width="50" height="50"  src="//hstatic.net/025/1000032025/1/2015/8-13/untitled-3_large.png" alt="" />
+                        <a class="productname" href="/collections/san-pham-noi-bat/products/dam-cong-so-hoa-tiet-elly" title="Đầm công sở họa tiết Elly">Đầm công sở họa tiết Elly</a>
+                        <span class="price">320,000₫</span>
+                        <p class="priceold">750,000₫</p>
+                        <div class="clear"></div>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+            -->
+         <!-- End Widget 22222 -->
+            <!-- BMust Have-->
+            <div class="sidewidt mt20">
+               <div class="flexslider" id="mainsliderside">
+                  <ul class="slides">
+                     <li>
+                        <a href="http://alluare-theme.myharavan.com/collections/thoi-trang-nu">
+                        <img src="//hstatic.net/025/1000032025/1000112672/left_image_ad_1.png?v=49" >
+                        </a>
+                     </li>
+                     <li>
+                        <a href="http://alluare-theme.myharavan.com/collections/thoi-trang-nu">
+                        <img src="//hstatic.net/025/1000032025/1000112672/left_image_ad_2.png?v=49" >
+                        </a>
+                     </li>
+                     <li>
+                        <a href="http://alluare-theme.myharavan.com/collections/thoi-trang-nu">
+                        <img src="//hstatic.net/025/1000032025/1000112672/left_image_ad_3.png?v=49" >
+                        </a>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </aside>
+         <!--end right-->
+      </div>
+      <style>
+         .c-carousel a{display:inline-block;}
+      </style>
+   </div>
+</div>
+@stop

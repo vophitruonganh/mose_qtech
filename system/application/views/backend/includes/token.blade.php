@@ -1,0 +1,1 @@
+<input id="page_token" type="hidden" name="_token" value="{{ csrf_token() }}" />

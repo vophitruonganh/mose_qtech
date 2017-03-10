@@ -1,0 +1,145 @@
+.row.theme-breadcrumb {
+	padding: 15px 0;
+}
+.breadcrumb-arrow {
+	height: 36px;
+	padding: 0;
+	line-height: 36px;
+	list-style: none;
+	background-color: #fff;
+	margin: 0;
+}
+.breadcrumb-arrow li:first-child a {
+	padding-left:0px;
+}
+.breadcrumb-arrow li a, .breadcrumb-arrow li:not(:first-child) span {
+	height: 36px;
+	line-height: 36px;
+	white-space: nowrap;
+	font-size: 12px;
+}
+#layout-page .header-page h1, #layout-page .header-page h2 {
+	font-size: 26px;
+	line-height: 1.3846153846;
+	color: #1e7708;
+	margin: 0;
+	padding: 0;
+	text-transform: uppercase;
+}
+/*********************************** phân trang *************************************88*/
+/* phân trang */
+div#pagination a.page-node, div#pagination span.page-node,#pagination a{
+	border: 1px solid #e9e9e9;
+	display: inline-block;
+	height: 24px;
+	line-height: 22px;
+	padding: 0 9px;
+	color: #909090;
+	font-size: 12px;
+	text-align: center;
+	border-radius: 0;
+	-webkit-border-radius: 0;
+	margin: 10px 0px;
+	-moz-border-radius: 0;
+	-o-border-radius: 0;
+	background-color: #fff;
+}
+div#pagination a.page-node:hover, div#pagination span.page-node.current{
+	background:#7da42a;
+	color: #fff;
+}
+#pagination a:hover{
+	background: #d71e1e;
+	color: #fff;
+}
+div#pagination a.next span i{
+	margin-left: 4px;
+}
+div#pagination a.prev span i{
+	margin-right: 4px;
+}
+div#pagination{
+	display: -webkit-box;
+	background: transparent;
+	margin-bottom: 30px;
+}
+/*modal*/ 
+.modal-tien-ich .modal-dialog .modal-content .modal-wrapper .title{
+	text-align: center;
+	margin: 0 0 20px 0;
+}
+.modal-tien-ich .modal-dialog .modal-content .modal-wrapper h3.article_header{
+	font-size: 24px;
+	line-height: 26px;
+	padding: 10px 0 0;
+	text-transform: uppercase;
+	color:#7da42a;
+	font-weight: 300;
+} 
+.modal-tien-ich,.modal-map {
+	background:rgba(0, 0, 0, 0.74);
+	z-index: 99999;	
+}
+.modal-tien-ich .modal-dialog .modal-content .close,.modal-map .modal-dialog .modal-content .close {
+	position: absolute;
+	top: -25px;
+	right: -25px;
+	font-size: 24px;
+	color: #fff;
+	background: rgba(0,0,0,0.8);
+	width: 30px;
+	line-height: 30px;
+	height: 30px;
+	border-radius: 50%;
+	text-align: center;
+	text-transform: uppercase;
+	cursor: pointer;
+	opacity: initial;
+}
+@media (min-width: 768px){
+	.modal-tien-ich .modal-dialog,.modal-map .modal-dialog {
+		width: 680px;
+		margin: 30px auto;
+	}
+
+	.modal-tien-ich .modal-dialog .modal-content,
+	.modal-map .modal-dialog .modal-content{
+		padding: 20px;
+		border: 0;
+		border-radius: 0;
+	}
+}
+
+.modal-wrapper {
+	max-height: 600px;
+	overflow: auto;
+}
+/******************************************** menu mobile***************************/
+button#nav-mobie {
+	background-color: transparent;
+	border: 0;
+	font-size: 30px;
+	padding: 0;
+	margin: 0;
+	margin-right: 10px;
+	color: #333;
+	position: relative;
+}
+div#layout-page {
+	padding-bottom: 30px;
+min-height:520px;
+}
+.btn-primary, .btn-primary:active, .btn-primary.active, .btn-primary.disabled, .btn-primary[disabled] {
+	background-color:#7da42a;
+	border-color:#7da42a;
+}
+.btn-primary:hover, .btn-primary:focus {
+	background-color:#1e7708;
+	border-color:#1e7708;
+}
+.page-not {
+	min-height:510px;
+}
+.page-not .img-none{
+	padding:20px 0;
+}

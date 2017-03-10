@@ -1,0 +1,612 @@
+<?php
+
+namespace App\Http\Controllers\backend\store;
+
+use Illuminate\Http\Request;
+
+use App\Http\Requests;
+use App\Http\Controllers\backend\BackendController;
+
+/*
+ * Use Library of Laravel
+ */
+use App\Models\Product;
+use App\Models\TaxonomyMeta;
+use App\Models\Taxonomy;
+use App\Models\OrderRelationships;
+use Validator;
+use DB;
+use Response;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Pagination\LengthAwarePaginator;
+
+class DiscountController extends BackendController
+{
+    public function paginate($items,$perPage,$pageStart=1)
+    {
+            
+        //offset: vị trí bắt đầu cắt trong mảng
+        //perPage: số lượng phần tử mỗi trang
+        $offSet = ($pageStart * $perPage) - $perPage; 
+            
+        // Get only the items you need using array_slice
+        $itemsForCurrentPage = array_slice($items, $offSet, $perPage, true);
+        return new LengthAwarePaginator($itemsForCurrentPage, count($items), 
+        $perPage,Paginator::resolveCurrentPage(), array('path' => Paginator::resolveCurrentPath()));
+    }
+	public function index(Request $request)
+    {
+        $data = $request->all();
+
+        $term=new Term;
+        $termmeta=new Termmeta;
+        
+        $taxonomy = new Taxonomy;
+        $order_relation=new OrderRelationships;
+    	// $terms=DB::table('qm_term')->join('qm_termmeta','qm_term.term_id','=','qm_termmeta.term_id')
+     //                                ->where('term_type','product_promotion')
+     //                                ->where('qm_termmeta.meta_key','product_discount')
+     //                                ->paginate(10);
+        $terms=$term->Get_all_discount();
+        // $group_products = DB::table('qm_term')->where('term_type','group_product')->get();
+        $group_products = $taxonomy->Get_taxonomy_type('group_product');
+        $search = isset($data['search']) ? $data['search'] : '';
+        $check = isset($data['check']) ? $data['check'] : [];
+        $pageNo = $request->input('page',1);
+        $select_action = isset($data['select_action']) ? $data['select_action'] : '';
+        $discount_status = isset($data['discount_status']) ? $data['discount_status'] : 'all';
+        $arr_discount_status = ['all','activated','not_activated','expired'];
+        $arr_select_action = ['trash','edit'];
+         /*kiểm tra kiểu request*/
+        $type_request = '';
+        if( $request->isMethod('post') && $request->ajax()){
+            $type_request = 'ajax';
+        }
+
+        $products=DB::table('qm_post')->join('qm_postmeta','qm_post.post_id','=','qm_postmeta.post_id')
+        ->where('post_type','product')->get();
+        $discount_count = [];
+        $discount_count['all']= $this->count_discount_status('all');
+        $discount_count['activated'] = $this->count_discount_status('activated');
+        $discount_count['not_activated'] = $this->count_discount_status('not_activated');
+        $discount_count['expired'] = $this->count_discount_status('expired');
+
+        if($type_request == 'ajax')
+        {
+            if(!in_array($discount_status, $arr_discount_status))
+            {
+                 return '{"Response":"False","Redirect":"'.url('admin/discount').'"}';
+                 if( $type =='action' ){
+                    $count = count($check);
+                    if($select_action == 'edit' && $count){
+                        // $output = Array('Response'=>'True','Redirect'=>url('admin/product/edit/'.$check[0]));
+
+
+                        
+                        return $output;
+                    }else if($select_action=='trash'){
+
+                    }
+                 }
+            }
+
+        }else{
+            if(!in_array($discount_status, $arr_discount_status))
+                return redirect('admin/discount');
+             if(!in_array($select_action, $arr_select_action) && $select_action)
+                return redirect('admin/discount');
+            if($select_action)
+            {
+                $count = count($check);
+                if($select_action == 'edit' && $count){
+                    foreach ($check as $c) 
+                    {
+                        $discount_meta = $termmeta->Get_discount_meta($c,'product_discount');
+                        $data=decode_serialize($discount_meta->meta_value);
+                        if($data['discount_active']==1){
+                            $data["discount_active"]=0;
+
+                        }
+                        $termmeta->Update_discount_meta($c, 'product_discount', encode_serialize($data));
+                        // return $discount_meta;
+                    }
+                }else if($select_action == 'trash' && $count){
+                    foreach ($check as $c) 
+                    {
+                        $check_discount = $order_relation->Get_order_relationships($c);
+                        if(count($check_discount)>0){
+                            return "Không thể xóa ".$c;
+                        }
+                        else{
+                            $taxonomy->Delete_taxonomy($c,'product_promotion');
+                        }
+                    }
+                }
+            }
+
+            $terms = $this->discountActionSearch($search, $discount_status,$pageNo);
+            return view('backend.pages.store.discount.listDiscount',[
+            'terms'         => $terms,
+            'products' => $products,
+            'group_products' => $group_products,
+            'discount_status'   => $discount_status,
+            'discount_count'    => $discount_count,
+            'search'        => $search,
+        ]);
+
+        }
+        // return view('backend.pages.store.discount.listDiscount',[
+        //     'terms' => $terms,
+        //     'group_products' => $group_products, 
+        //     'products' => $products,
+        //     'discount_count' => $discount_count           
+        // ]);
+    }
+    private function count_discount_status($discount_status = '')
+    {
+        $term=new Term;
+        $time=time();
+        $count=0;
+        $terms=$term->Get_all_discount("on");
+        $arr_discount_status = array('all','activated','not_activated','expired');
+        if(!in_array($discount_status, $arr_discount_status))
+            return '0';
+        if($discount_status=='all'){
+            
+            foreach ($terms as $term) {
+                $count++;
+            }
+            return $count;
+        }
+        else 
+        {
+            $find='';
+            switch ($discount_status) {
+                case 'activated':
+                    $find=1;
+                    break;
+                
+                case 'not_activated':
+                    $find='0';
+                    break;
+
+                case 'expired':
+                    $find='expired';
+                    break;
+            }
+            
+            foreach ($terms as $term) {
+                $v=decode_serialize($term->meta_value);
+                if($find=='expired'){
+                    if($v['date_end']<$time && $v['date_limit']=="false"){
+                        $count++;
+                    }
+                }
+                else{
+                    if($v['discount_active']==$find){
+                        $count++;
+                    } 
+                }
+                
+                
+                
+            }
+            return $count;
+        }
+    }
+    private function discountActionSearch( $search = '', $discount_status = '',$pageNo=1)
+    {
+        $term=new Term;
+        $time=time();
+        $arr=array();
+        $arr_discount_status = ['all','activated','not_activated','expired'] ;
+        $terms = $term->Search_discount($search);
+        if(in_array($discount_status, $arr_discount_status))
+        {
+
+            
+            $find='';
+            switch ($discount_status) {
+                case 'activated':
+                    $find=1;
+                    break;
+                
+                case 'not_activated':
+                    $find='0';
+                    break;
+
+                case 'expired':
+                    $find='expired';
+                    break;
+                case 'all':
+                     foreach ($terms as $v) {
+                        array_push($arr, $v);
+                    }
+                    return $this->paginate($arr, 10,$pageNo);
+                    break;
+            }
+            foreach ($terms as $v) {
+                $value=decode_serialize($v->meta_value);
+                if($find=='expired'){
+                    if($value['date_end']<$time && $value['date_limit']=="false"){
+                       array_push($arr, $v);
+                    }
+                }
+                else{
+                    if($value['discount_active']==$find){
+                       array_push($arr, $v);
+                    } 
+                } 
+            }
+            $arr = $this->paginate($arr, 10,$pageNo);  
+            return $arr;
+        }
+        foreach ($terms as $v) {
+            array_push($arr, $v);
+        }
+        return $this->paginate($arr, 10,$pageNo);
+        
+
+    }
+    //tạo mã khuyến mãi tự động
+    public function generate_code_discount()
+    { 
+    	return strtoupper(str_random(12));
+    }
+    //danh sách nhóm sản phẩm
+    public function offerProductGroup(){
+    	// return DB::table('qm_term')->where('term_type','group_product')->get();
+        $taxonomy = new Taxonomy;
+        return $taxonomy->Get_taxonomy_type('product_group');
+    }
+    //danh sách sản phẩm
+    public function list_product(){
+    	// return DB::table('qm_post')->where('post_type','product')->get();
+        return DB::table('qm_product')->get();
+    }
+	public function create()
+    {
+        return view('backend.pages.store.discount.createDiscount');
+    }
+    public function store(Request $request)
+    {
+        $term=new Term;
+        $product=new Product;
+        $data = $request->all();
+        $data_termmeta=[];
+        $data = $data["data"];
+        //khi chương trình khuyến mãi là mã khuyến mãi
+        if($data["discount_promotion"]==1){
+            /*-- Check promotion Name --*/
+            $terms=Term::where('term_type','product_promotion')->get();
+            foreach ($terms as $rows) {
+                if($rows->name==$data['discount_name']){
+                    return Response::json(array('status' => 'error', 'messenger' => "Mã khuyến mãi đã tồn tại", 'data' => ''));
+                }
+                
+            }
+            /*-- End Product Tag Name --*/
+            /*-- Check Slug --*/
+            if( $data['slug'] == "" )
+            {
+                $data['slug'] = $data['discount_name'];
+            }
+            $data['slug'] = str_slug($data['slug']);
+            
+            $_slug = $data['slug'];
+            $_slugUndercore = $_slug.'-';
+            $_terms=Term::where('slug',$_slug)->where('term_type','product_promotion')->get();
+            $i=1;
+            while( count($_terms) >= 1 )
+            {
+                $_slug = $_slugUndercore.$i;
+                $_terms = Term::where('slug',$_slug)->where('term_type','product_promotion')->get();
+                $i++;
+            }
+            $data['slug']=$_slug;
+            /*-- End Check Slug --*/
+            /*-- Check discount_type --*/
+            $arrayDiscountStyle = [1,2];
+            if( !in_array($data['discount_type'],$arrayDiscountStyle) )
+            {
+                return Response::json(array('status' => 'error', 'messenger' => "Loại khuyến mãi không hợp lệ", 'data' => ''));
+            }
+            /*-- End Check discount_type --*/
+            $arraydvcount = [0,1];
+            /*-- Check group product --*/
+            if($data['discount_offer']==3){
+
+                $group_product_check=DB::table('qm_term')->where('term_type','group_product')->where('term_id',$data['dv_value'])
+                ->get();
+                if(count($group_product_check)==0){
+                    return Response::json(array('status' => 'error', 'messenger' => "Nhóm sản phẩm bạn chọn không tồn tại", 'data' => ''));
+                }
+                if( !in_array($data['dv_count'],$arraydvcount) )
+                {
+                        return Response::json(array('status' => 'error', 'messenger' => "Số lượng sản phẩm áp dụng không hợp lệ", 'data' => ''));
+                }
+            }
+            /*-- End Check group product --*/
+            /*-- Check product --*/
+            if($data['discount_offer']==4){
+                // $product_check=DB::table('qm_post')->where('post_type','product')->where('post_id',$data['dv_value'])
+                // ->get();
+                // $product_check=DB::table('qm_product')->where('product_id',$data['dv_value'])
+                // ->get();
+                $product_check=$product->Get_product($data['dv_value']);
+                if(count($product_check)==0){
+                    return Response::json(array('status' => 'error', 'messenger' => "Sản phẩm bạn chọn không tồn tại", 'data' => ''));
+                }
+                if( !in_array($data['dv_count'],$arraydvcount) )
+                {
+                    return Response::json(array('status' => 'error', 'messenger' => "Số lượng sản phẩm áp dụng không hợp lệ", 'data' => ''));
+                }
+            }
+            $date = date('d/m/Y');
+            $date_start  = isset($data['date_start']) ? $data['date_start'] : $date;
+            if(strpos($date_start, " ") == false)
+            {
+               $date_start = "00:00 $date_start";
+            }
+            list($time, $date) = explode(' ', $date_start);
+            list($h,$m) = explode(':', $time);
+            list($day,$month,$year) = explode('/', $date);
+            $$data['date_start']  = strtotime(date("$year-$month-$day $h:$m:00"));
+            /*-- End Check product --*/
+            $this->Insert_discount($data);
+            // $term=new Term;
+            // $data['term_type'] = 'product_promotion';
+            // $data['parent_id'] = 0;
+            // $data['count'] = 0;
+            // $term_id = $term->Insert_discount($data);
+            // // $term->name=$data['discount_name'];
+            // // $term->slug=$data['slug'];
+            // // $term->parent_id=0;
+            // // $term->count=0;
+            // // $term->term_type='product_promotion';
+            // // $term->save();
+            // // $term_id = $term->max('term_id');
+
+            // $termmeta=new Termmeta;
+            // $data_termmeta["discount_promotion"]=$data['discount_promotion'];
+            // $data_termmeta["discount_join"]=$data['discount_join'];
+            // $data_termmeta["limit"]=$data['limit'];
+            // $data_termmeta["discount_type"]=$data['discount_type'];
+            // $data_termmeta["discount_take"]=$data['discount_take'];
+            // $data_termmeta["discount_offer"]=$data['discount_offer'];
+            // $data_termmeta["dv_value"]=$data['dv_value'];
+            // $data_termmeta["dv_count"]=$data['dv_count'];
+            // $data_termmeta["dv_money"]=$data['dv_money'];
+            // $data_termmeta["date_start"]=$data['date_start'];
+            // $data_termmeta["date_end"]=$data['date_end'] + 86399;
+            // $data_termmeta["date_limit"]=$data['date_limit'];
+            // $data_termmeta["discount_active"]=1;
+            // $termmeta->Insert_discount_meta($term_id,'product_discount',encode_serialize($data_termmeta));
+
+            // $termmmeta->term_id=$term_id;
+            // $termmmeta->meta_key='product_discount';
+            // $termmmeta->meta_value=encode_serialize($data_termmeta);
+            // $termmmeta->save();
+
+        }
+        if($data["discount_promotion"]==2){
+            /*-- Check promotion Name --*/
+            $terms=Term::where('term_type','product_promotion')->get();
+            foreach ($terms as $rows) {
+                if($rows->name==$data['discount_name']){
+                    return Response::json(array('status' => 'error', 'messenger' => "Chương trình khuyến mãi đã tồn tại", 'data' => ''));
+                }
+            }
+            /*-- End Product Tag Name --*/
+            /*-- Check Slug --*/
+            if( $data['slug'] == "" )
+            {
+                $data['slug'] = $data['discount_name'];
+            }
+            $data['slug'] = str_slug($data['slug']);
+            
+            $_slug = $data['slug'];
+            $_slugUndercore = $_slug.'-';
+            $_terms=Term::where('slug',$_slug)->where('term_type','product_promotion')->get();
+            $i=1;
+            while( count($_terms) >= 1 )
+            {
+                $_slug = $_slugUndercore.$i;
+                $_terms = Term::where('slug',$_slug)->where('term_type','product_promotion')->get();
+                $i++;
+            }
+            $data['slug']=$_slug;
+            /*-- End Check Slug --*/
+            /*-- Check discount_type --*/
+            $arrayDiscountStyle = [1,2];
+            if( !in_array($data['discount_type'],$arrayDiscountStyle) )
+            {
+                return Response::json(array('status' => 'error', 'messenger' => "Loại khuyến mãi không hợp lệ", 'data' => ''));
+            }
+            /*-- End Check discount_type --*/
+            /*-- Check group product --*/
+            if($data['discount_offer']==3){
+                $group_product_check=DB::table('qm_term')->where('term_type','group_product')->where('term_id',$data['dv_value'])
+                ->get();
+                if(count($group_product_check)==0){
+                    return Response::json(array('status' => 'error', 'messenger' => "Nhóm sản phẩm bạn chọn không tồn tại", 'data' => ''));
+                }
+            }
+            /*-- End check group product --*/
+            /*-- Check product --*/
+            if($data['discount_offer']==4){
+                // $product_check=DB::table('qm_post')->where('post_type','product')->where('post_id',$data['dv_value'])
+                // ->get();
+                // $product_check=DB::table('qm_product')->where('product_id',$data['dv_value'])
+                // ->get();
+                $product_check=$product->Get_product($data['dv_value']);
+                if(count($product_check)==0){
+                    return Response::json(array('status' => 'error', 'messenger' => "Sản phẩm bạn chọn không tồn tại", 'data' => ''));
+                }
+            }
+            /*-- End Check product --*/
+            $this->Insert_discount($data);
+            // $term=new Term;
+            // // $term->name=$data['discount_name'];
+            // // $term->slug=$data['slug'];
+            // // $term->parent_id=0;
+            // // $term->count=0;
+            // // $term->term_type='product_promotion';
+            // // $term->save();
+            // // $term_id = $term->max('term_id');
+            // $data['term_type'] = 'product_promotion';
+            // $data['parent_id'] = 0;
+            // $data['count'] = 0;
+            // $term_id = $term->Insert_discount($data);
+
+            // $termmeta=new Termmeta;
+            // $data_termmeta["discount_promotion"]=$data['discount_promotion'];
+            // $data_termmeta["discount_join"]=$data['discount_join'];
+            // $data_termmeta["limit"]=$data['limit'];
+            // $data_termmeta["discount_type"]=$data['discount_type'];
+            // $data_termmeta["discount_take"]=$data['discount_take'];
+            // $data_termmeta["discount_offer"]=$data['discount_offer'];
+            // $data_termmeta["dv_value"]=$data['dv_value'];
+            // $data_termmeta["dv_count"]=$data['dv_count'];
+            // $data_termmeta["dv_money"]=$data['dv_money'];
+            // $data_termmeta["date_start"]=$data['date_start'];
+            // $data_termmeta["date_end"]=$data['date_end']  + 86399;
+            // $data_termmeta["date_limit"]=$data['date_limit'];
+            // $data_termmeta["discount_active"]=1;
+            // $termmeta->Insert_discount_meta($term_id,'product_discount',encode_serialize($data_termmeta));
+            // $termmmeta->term_id=$term_id;
+            // $termmmeta->meta_key='product_discount';
+            // $termmmeta->meta_value=encode_serialize($data_termmeta);
+            // $termmmeta->save();
+        }
+    	return Response::json(array('status' => 'success', 'messenger' => "Thêm thành công", 'data' => ''));;
+    }
+    public function Insert_discount($data = array()){
+        $term=new Term;
+        $data['term_type'] = 'product_promotion';
+        $data['parent_id'] = 0;
+        $data['count'] = 0;
+        $term_id = $term->Insert_discount($data);
+
+        $termmeta=new Termmeta;
+        $data_termmeta["discount_promotion"]=$data['discount_promotion'];
+        $data_termmeta["discount_join"]=$data['discount_join'];
+        $data_termmeta["limit"]=$data['limit'];
+        $data_termmeta["discount_type"]=$data['discount_type'];
+        $data_termmeta["discount_take"]=$data['discount_take'];
+        $data_termmeta["discount_offer"]=$data['discount_offer'];
+        $data_termmeta["dv_value"]=$data['dv_value'];
+        $data_termmeta["dv_count"]=$data['dv_count'];
+        $data_termmeta["dv_money"]=$data['dv_money'];
+        $data_termmeta["date_start"]=$data['date_start'];
+        $data_termmeta["date_end"]=$data['date_end']  + 86399;
+        $data_termmeta["date_limit"]=$data['date_limit'];
+        $data_termmeta["discount_active"]=1;
+        $termmeta->Insert_discount_meta($term_id,'product_discount',encode_serialize($data_termmeta));
+    }
+    public function edit($term_id)
+    {
+        $termmeta=new Termmeta;
+        // $termidcheck = Termmeta::where('term_id',$term_id)->first();
+        $termidcheck = $termmeta->Get_discount_meta($term_id,'product_discount');
+        $data_termmeta=[];
+        if( count($termidcheck) == 0 )
+        {
+            return redirect('admin/discount');
+        }
+
+        // $termmeta=Termmeta::where('term_id',$term_id)->first();
+        $termmetavalue=$termmeta->Get_discount_meta($term_id,'product_discount');
+        $data=decode_serialize($termmetavalue->meta_value);
+        $data_termmeta["discount_promotion"]=$data['discount_promotion'];
+        $data_termmeta["discount_join"]=$data['discount_join'];
+        $data_termmeta["limit"]=$data['limit'];
+        $data_termmeta["discount_type"]=$data['discount_type'];
+        $data_termmeta["discount_take"]=$data['discount_take'];
+        $data_termmeta["discount_offer"]=$data['discount_offer'];
+        $data_termmeta["dv_value"]=$data['dv_value'];
+        $data_termmeta["dv_count"]=$data['dv_count'];
+        $data_termmeta["dv_money"]=$data['dv_money'];
+        $data_termmeta["date_start"]=$data['date_start'];
+        $data_termmeta["date_end"]=$data['date_end'];
+        $data_termmeta["date_limit"]=$data['date_limit'];
+        if($data['discount_active']==1){
+            $data_termmeta["discount_active"]=0;
+        }
+        if($data['discount_active']==0){
+            $data_termmeta["discount_active"]=1;
+        }
+        // DB::table('qm_termmeta')->where('term_id',$term_id)->update(['meta_value'=> encode_serialize($data_termmeta)]);
+        $termmeta->Update_discount_meta($term_id, 'product_discount', encode_serialize($data_termmeta));
+
+    
+
+        return redirect('admin/discount');
+    }
+    public function GetOfferList(){
+        $product=new Product;
+        $taxonomy=new Taxonomy;
+        $arr=array();
+        $type = isset($_REQUEST['type']) ? $_REQUEST['type'] : '';
+        $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+        if($type!=''){
+            if($type=='product'){
+                $data=$product->Search_product_title($search);
+                $arrDatalist=array();
+                $a = '';
+                foreach ($data as $v) {
+                    //array_push($arrDatalist, json_encode(["ID" => $v->product_id,"Title" => $v->product_title]));
+                    $arrDatalist[] = array("id" => $v->product_id,"text" => $v->product_title);
+                    $a = $v->product_title;
+                }
+                // $list = [
+                //     ["DiscountOffer"=>"product","DataList"=>$arrDatalist]
+                // ];
+           
+                return json_encode($arrDatalist,JSON_UNESCAPED_UNICODE);
+            }
+            if($type=='product_group' || $type=='customer_group'){
+                $data=$taxonomy->Search_taxonomy_title($type,$search);
+                $arrDatalist=array();
+                foreach ($data as $v) {
+                    // array_push($arrDatalist, json_encode(["ID" => $v->term_id,"Title" => $v->name]));
+                    $arrDatalist[] = array("id" => $v->term_id,"text" => $v->name);
+                }
+                // $list = [
+                //     ["DiscountOffer"=>"product_group","DataList"=>$arrDatalist]
+                // ];
+           
+                return json_encode($arrDatalist,JSON_UNESCAPED_UNICODE);
+            }
+
+        }
+        
+        
+    }
+    public function destroy($term_id)
+    {
+        $term=new Term;
+        $termmeta=new Termmeta;
+        // $term=DB::table('qm_term')->where('term_id',$term_id)->first();
+        // $termmeta=DB::table('qm_termmeta')->where('term_id',$term_id)->get();
+        $term=$term->Get_discount($term_id,'product_promotion');
+        $termmeta=$termmeta->Get_discount_meta($term_id,'product_discount');
+        if($term)
+        {
+            // DB::table('qm_term')->where('term_id',$term_id)->delete();
+            $term->Delete_discount($term_id,'product_promotion');
+        }
+        else{
+            return redirect('admin/discount');
+        }
+        if($termmeta)
+        {
+            // DB::table('qm_termmeta')->where('term_id',$term_id)->delete();
+            $termmeta->Delete_discount_meta_key($term_id,'product_discount');
+        }
+        else{
+            return redirect('admin/discount');
+        }
+        return redirect('admin/discount');
+    }
+}

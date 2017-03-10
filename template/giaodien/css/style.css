@@ -1,0 +1,167 @@
+@media (min-width: 992px ) {
+    .nivo-directionNav a {
+        top: 30% ;
+     }
+}
+.verticalmenu .navbar-nav > li > a {
+    min-height: 0px;
+    line-height: 10px;
+    padding-left: 30px;
+}
+
+
+/*tin tuc*/
+h3.right-bar-title {
+    font-size: 16px;
+    margin: 0 0 35px;
+    padding: 0 0 10px;
+    position: relative;
+    text-transform: none;
+    color: #3bb2ca;
+    font-family: 'Roboto Slab', serif;
+    border-bottom: 1px solid #ebebeb;
+}
+.single-recent-post {
+    margin: 0 0 20px;
+    overflow: hidden;
+}
+.recent-post {
+    overflow: hidden;
+}
+.post-thumb {
+    float: left;
+    width: 32%;
+    margin-right: 15px;
+}
+.post-thumb a {
+    border: 2px solid transparent;
+    display: block;
+}
+a {
+    transition: all 0.4s ease 0s;
+    text-decoration: none;
+    color: #222;
+}
+img {
+    max-width: 100%;
+    height: auto;
+}
+.single-recent-post .post-info h3 {
+    font-size: 13px;
+    font-weight: normal;
+    margin: 0 0 5px;
+}
+
+.single-recent-post .post-date {
+    color: #3c3c3c;
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+}
+
+.sidebar-right .tags {
+    border-bottom: 0 none;
+    margin: 0;
+    padding: 0;
+    margin-bottom: 30px;
+}
+
+
+.tags ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;}
+.tags ul li {
+    display: inline-block;
+}
+.sidebar-right .tags ul li a {
+    padding: 0 9px;
+}
+.tags ul li a {
+    border: 1px solid #e5e5e5;
+    display: inline-block;
+    font-size: 12px !important;
+    line-height: 34px;
+    margin: 0 10px 10px 0;
+    padding: 0 10px;
+    text-transform: capitalize;
+}
+
+.tags ul li a:hover {
+    background: #3bb2ca none repeat scroll 0 0;
+    border-color: #3bb2ca;
+    color: #fff;
+}
+
+.hedding .blog-hedding {
+    color: #797979;
+    font-size: 18px;
+    font-weight: 400;
+    float: left;
+    width: 100%;
+}
+.interview {
+    float: left;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.interview div {
+    float: left;
+    margin-right: 15px;
+    color: #b7b7b7;
+}
+
+.blog-post-content .single-blog {
+    margin: 0 0 40px;
+    float: left;
+    width: 100%;
+}
+
+.hedding {
+    margin: 0px 0 15px;
+}
+.interview {
+    float: left;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.post-thumbnail {
+    margin: 0 0 30px;
+}
+.post-thumbnail img {
+    width: 100%;
+    
+}
+.blog-post-content .paginations {
+    margin: 0 0 70px;
+}
+.paginations {
+    margin-bottom: 15px;
+    padding-top: 15px;
+}
+.paginations ul {
+    margin: 30px 0px;
+    text-align: right;
+    padding: 0;
+    list-style: none;
+}
+.paginations ul li {
+    display: inline-block;
+    margin: 0 5px;
+}
+.paginations ul li a:hover, .paginations ul li.current a {
+    color: #fff;
+    background: #3bb2ca;
+}
+.paginations ul li a {
+    background: #fff;
+    color: #4c4c4c;
+    display: block;
+    font-family: 'Roboto', sans-serif;
+    font-size: 12px;
+    line-height: 34px;
+    padding: 0px 15px;
+    position: relative;
+    border: 1px solid #ebebeb;
+}
+
+

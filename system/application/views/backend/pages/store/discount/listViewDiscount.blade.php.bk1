@@ -1,0 +1,83 @@
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th class="table-check"><input type="checkbox" id="check-all" class="filled-tbl" /><label for="check-all"></label></th>
+            <th>Loại khuyến mãi</th>
+            <th>Tình trạng</th>
+            <th class="text-xs-center">Số lần sử dụng</th>
+            <th>Thời gian</th>
+        </tr>
+    </thead>
+    <tbody>
+    @if( count($discounts) == 0 )
+        <tr><th class="table-check"></th><td colspan="5">@include('backend.includes.nodata')</td></tr>
+    @else
+    <?php $i = 0; ?>
+    @foreach( $discounts as $discount_id => $discount)
+    <?php $i++; ?>
+    <tr data-id="{{ $discount_id }}">
+        <th class="table-check"><input id="tbl-check-{{$i}}" type="checkbox" class="filled-tbl" name="check[]" id="check[]" value="{{ $discount_id }}" /><label for="tbl-check-{{$i}}"></label></th>
+        <td class="col-2">
+            <div class="discount-name">{{ $discount['first_code'] }}</div>
+            <div class="title-link"><a href="#discount-modal" data-toggle="modal">{{ $discount['last_code'] }}</a></div>
+            <p class="description">{!! $discount['description'] !!}</p>
+            @if( strlen($discount['allow_promotion']) > 0 ) <p class="allow-promotion">{{ $discount['allow_promotion'] }}</p> @endif
+        </td>
+        <td>{{ $discount['status'] }}</td>
+        <td class="text-xs-center">{{ $discount['discount_limit_time_used'] }}<p class="discount-limit" style="display:none;">{!! $discount['discount_limit'] !!}</p></td>
+        <td>
+          <p>Bắt đầu: <span class="date_start">{{ $discount['date_start'] }}</span></p>
+          <p>Kết thúc: <span class="date_end">{{ $discount['date_end'] }}</span></p>
+        </td>
+    @endforeach
+    </tbody>
+    @endif
+</table>
+<div class="modal fade in" id="discount-modal" tabindex="-1" role="dialog" aria-hidden="true">
+ 	<div class="modal-dialog" role="details">
+    	<div class="modal-content">
+      		<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel">Chi tiết khuyến mãi</h4></div>
+      		<div class="modal-body font-lg-size">
+      			<p><span class="discount-name"></span> <span class="font-weight-bold text-danger discount-title"></span></p>
+      			<p class="text-muted allow-promotion"></p>
+      			<p class="discount-limit"></p>
+	            <p class="description"></p>
+      			<p><i class="material-icons md-16">timer</i> Bắt đầu khuyến mãi: <strong class="date_start"></strong></p>
+	            <p><i class="material-icons md-16">timer_off</i> Kết thúc khuyến mãi: <strong class="date_end"></strong></p>
+      			<p>Tình trạng: <strong class="text-primary">Đã kích hoạt</strong></p>
+      		</div>
+      		<div class="modal-footer">
+      			<button type="button" class="btn btn-primary">Sử dụng khuyến mãi</button>
+        		<button type="button" class="btn btn-danger">Ngưng khuyến mãi</button>
+        		<button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+      		</div>
+    	</div>
+  	</div>
+</div>
+<script>
+$(document).on("click", ".title-link", function () {
+  var element = $(this).parents(':eq(1)');
+  var discountName = element.find('.discount-name').html();
+  var discountTitle = $(this).html();
+  var allowPromotion = element.find('.allow-promotion').html();
+  var discountLimit = element.find('.discount-limit').html();
+  var description = element.find('.description').html();
+  var dateStart = element.find('.date_start').html();
+  var dateEnd = element.find('.date_end').html();
+
+  $(".modal-body .discount-name").html(discountName);
+  $(".modal-body .discount-title").html(discountTitle);
+  if( allowPromotion != undefined && allowPromotion.length > 0 )
+  {
+    $(".modal-body .allow-promotion").html(allowPromotion);
+  }
+  $(".modal-body .discount-limit").html(discountLimit);
+  $(".modal-body .description").html(description);
+  $(".modal-body .date_start").html(dateStart);
+  if( dateEnd == '—' )
+  {
+    dateEnd = 'Khuyến mãi không bao giờ hết hạn';
+  }
+  $(".modal-body .date_end").html(dateEnd);
+});
+</script>

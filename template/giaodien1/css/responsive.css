@@ -1,0 +1,263 @@
+@media screen and (max-width: 767px) {
+    .logo {
+        margin: 25px 0 20px 0;
+    }
+    .nav-bar-mobile {
+        display: block;
+    }
+    #owl-slider .owl-pagination {
+        bottom: 5px;
+    }
+    .feature {
+        padding: 0 0 60px 0;
+    }
+    .feature-item img {
+        padding-top: 35px;
+    }
+    .feature-item p {
+        padding: 0;
+        padding-bottom: 15px;
+    }
+    .news-seminor {
+        padding: 30px 0 0 0;
+    }
+    .on-item {
+        height: auto;
+    }
+    .on-item-name h3 {
+        line-height: 21px;
+    }
+    .on-item-image {
+        height: auto;
+    }
+    .seminor {
+        padding: 32px 0 0 0;
+    }
+    #owl-seminor {
+        height: auto;
+        padding-bottom: 27px;
+    }
+    .os-item {
+        margin-bottom: 27px;
+    }
+    .os-item-image {
+        width: 107px;
+        height: auto;
+    }
+    .os-item-name h3 {
+        height: 43px;
+        overflow: hidden;
+        padding: 3px 0 11px 0;
+    }
+    .school {
+        padding: 35px 0 0 0;
+    }
+    #owl-school .owl-pagination {
+        display: none;
+    }
+    .school-heading {
+        margin-bottom: 40px;
+    }
+    .school-heading h2 {
+        padding-bottom: 10px;
+        font-size: 18px;
+        color: #111111;
+        text-transform: none;
+    }
+    .school-item-summary {
+        font-size: 13px;
+        line-height: 19.5px;
+        color: #878787;
+    }
+    .testimonial {
+        padding: 0;
+    }
+    #owl-testimonial .owl-pagination {
+        display: none;
+    }
+    #owl-testimonial .item {
+        padding: 0;
+    }
+    .testimonial-item-body {
+        padding: 15px;
+    }
+    .testimonial-item-user {
+        overflow: hidden;
+    }
+    .testimonial-item {
+        margin: 27px 0 35px 0;
+    }
+    .cultural-photo-info {
+        padding: 0;
+    }
+    .cultural,
+    .photo-video,
+    .info {
+        margin-top: 30px;
+    }
+    .info {
+        margin-bottom: 30px;
+    }
+    .footer-box {
+        padding: 0;
+        width: 100%;
+    }
+	.product-tabs-title li {
+		width: 100%;
+	}
+	.product-tabs-title li a {
+		padding: 0;
+		text-align: center;
+	}
+	.tab-content {
+		padding: 15px;
+	}
+	.table-cart table tr td {
+		padding: 8px;
+	}
+	.table-cart table tr td:nth-child(1) img {
+		height: 50px;
+		width: 50px;
+	}
+	.form-cart-continue, .form-cart-update {
+		margin-left:0;
+	}
+	.form-cart-continue {
+		margin-bottom: 15px;
+	}
+	.form-cart-update {
+		margin-left: 10px;
+	}
+}
+@media screen and (min-width: 480px) and (max-width: 767px) {
+    .container {
+        width: 480px;
+    }
+}
+@media screen and (min-width: 768px) and (max-width: 991px) {
+    .nav-bar-mobile {
+        display: block;;
+    }
+    .header-nav-main > ul > li {
+        display: none;
+    }
+    .header-nav-main > ul > li.search,
+    .header-nav-main > ul > li.cart {
+        display: block;
+    }
+    .feature-item h2 {
+        font-size: 13px;
+    }
+    .feature-item p {
+        padding: 0;
+        text-align: center;
+    }
+    .on-item {
+        height: auto;
+    }
+    #owl-seminor {
+        height: auto;
+    }
+    .news-seminor {
+        padding: 45px 0;
+    }
+    .os-item {
+        margin-bottom: 23px;
+    }
+    .os-item-name h3 {
+        padding: 5px 0;
+    }
+    .os-item-image {
+        width: 125px;
+        height: 86px;
+    }
+    .school {
+        padding: 40px 0 55px 0;
+    }
+    .school-heading {
+        margin-bottom: 30px;
+    }
+    .school-item {
+        padding-bottom: 22px;
+    }
+    .school-footer {
+        padding-top: 24px;
+    }
+    .testimonial {
+        padding: 40px 0 22px 0;
+    }
+    .testimonial-heading {
+        margin-bottom: 20px;
+    }
+    #owl-testimonial .owl-pagination {
+        margin-left: -51px;
+    }
+    .testimonial-item {
+        margin-bottom: 0;
+        padding-right: 170px;
+    }
+    .cultural-item-image {
+        width: 95px;
+    }
+    .cultural-item-summary {
+        display: none;
+    }
+    .cultural-item-name h3 {
+        padding: 6px 0;
+    }
+    .footer-box1 {
+        width: 250px;
+        padding-right: 30px;
+    }
+    .footer-box1 p {
+        font-size: 12px;
+            line-height: 25px;
+    }
+    .footer-box2 {
+        width: 180px;
+    }
+    .footer-box3 {
+        width: 157px;
+    }
+    .footer-box4 {
+        width: 130px;
+    }
+    .footer-heading {
+        padding: 16px 0;
+        font-size: 12px;
+    }
+    .footer-box-content ul li a {
+        font-size: 12px;
+    }
+	#owl-school .school-item {
+		height: 490px;
+		overflow: hidden;
+	}
+	.product-tabs-title li a {
+		padding: 0 40px;
+	}
+}
+@media screen and (min-width: 992px) and (max-width: 1199px) {
+    .header-nav-main > ul > li > a {
+        padding: 5px;
+    }
+    .footer-box1 {
+        width: 280px;
+        padding-right: 15px;
+    }
+    .footer-box2 {
+        width: 200px;
+    }
+    .footer-box3 {
+        width: 169px;
+    }
+    .footer-box4 {
+        width: 183px;
+    }
+    .footer-box5 {
+        width: 108px;
+    }
+}
+@media screen and (min-width: 1200px) {
+	
+}

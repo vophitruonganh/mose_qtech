@@ -1,0 +1,504 @@
+<?php
+
+namespace App\Http\Controllers\backend\account;
+
+use Illuminate\Http\Request;
+
+use App\Http\Requests;
+//use App\Http\Controllers\BackendController;
+use App\Http\Controllers\backend\BackendController;
+
+/*
+ * Use Library of Laravel
+ */
+use App\Models\Customer;
+use App\Models\CustomerMeta;
+use App\Models\Taxonomy;
+use App\Models\UserRelationships;
+use Validator;
+use DB;
+use Session;
+
+class CustomerController extends BackendController
+{
+    public function index(Request $request)
+    {
+
+        $data = $request->all();
+        $userObject = new User;
+        
+        $select_action = isset($data['select_action']) ? $data['select_action'] : '';
+        $check = isset($data['check']) ? $data['check'] : [];
+        $type = isset($data['type']) ? $data['type'] : '';
+        $search = isset($data['search']) ? $data['search'] : '';
+        $userCurrentLevel = Session::get('user_level');
+        $count = count($check);
+        $type_request = '';
+        if( $request->isMethod('post') && $request->ajax()){
+            $type_request = 'ajax';
+        }
+
+        if($select_action == 'activate' && $count)
+        {
+            foreach( $check as $v )
+            {
+                $userObject->update_user([
+                    'user_id' => $v,
+                    'user_status' => 1,
+                ]);
+            }
+        }
+
+        //Vô hiệu hóa User
+        if($select_action == 'disable' && $count)
+        {
+            foreach( $check as $v )
+            {
+                $userObject->update_user([
+                    'user_id' => $v,
+                    'user_status' => 0,
+                ]);
+            }
+        }
+
+        //Vô hiệu hóa User
+        if($select_action == 'delete' && $count)
+        {
+            foreach( $check as $v )
+            {
+                $this-> destroy($v);
+            }
+        }
+
+        if( $type_request == 'ajax' ){
+            if($select_action == 'edit' && $count)
+            {
+                $output = Array('Response'=>'True','Redirect'=>url('admin/customer/edit/'.$check[0]));
+                return $output;
+            }
+        }else{
+            if( $select_action == 'edit' && $count )
+            {
+                return redirect('admin/customer/edit/'.$check[0]);
+            }
+
+        }
+        // Search
+        
+        
+        if( $search )
+        {
+            // Search with nickname
+            $users = $userObject->search_user('user_id','DESC','user_nickname',$data['search'],[4]);
+            
+            // Search with telephone
+            if( count($users) == 0 )
+            {
+                $users = $userObject->search_user('user_id','DESC','user_telephone',$data['search'],[4]);
+            }
+            
+            // Search with email
+            if( count($users) == 0 )
+            {
+                $users = $userObject->search_user('user_id','DESC','user_email',$data['search'],[4]);
+            }
+        }
+        else
+        {
+            $users = $userObject->search_user('user_id','DESC',null,null,[4]);
+        }
+        if( $type_request == 'ajax' ){
+            $data_view = array();
+            $data_view['search'] = $search;
+            $data_view['select_action'] = $select_action;
+            return $this->customerView($users,$data_view);
+        }else{
+            $user_page = [];
+            $user_page['search'] = $search;
+            return view('backend.pages.account.customer.listCustomer',[
+                'users' => $users,
+                'search' => $search,
+                'pagination'    => $user_page,
+            ]);
+        }
+        
+    }
+
+    private function customerView($users , $data_view = array())
+    {
+        $objdata = Array('Response'=>'False','Page'=>'','List'=>'');
+        $view = view('backend.pages.account.customer.listViewCustomer',[
+                'users'         => $users,
+                'search'        => $data_view['search'],
+            ]);
+        $objdata['Page'] = urlencode($users->render());
+        
+        if($data_view['search']){
+            $objdata['Page'] = urlencode($users->appends(array('search' => $data_view['search']))->render());
+        }else {
+            $objdata['Page'] = urlencode($users->render());
+        }
+        $objdata['List'] = urlencode($view);
+        if($objdata['List']){
+            $objdata['Response'] = 'True';
+        }
+        if($data_view['select_action'] == 'activate'){
+            $objdata['Message'] = 'Kích hoạt khách hàng thành công!';
+        }
+        if($data_view['select_action'] == 'disable'){
+            $objdata['Message'] = 'Vô hiệu hóa khách hàng thành công!';
+        }
+        if($data_view['select_action'] == 'trash'){
+            $objdata['Message'] = 'Xóa khách hàng thành công!';
+        }
+        return $objdata;
+    }
+    
+    public function create()
+    {
+        $taxonomy = new Taxonomy;
+        $customer_groups = $taxonomy->Get_taxonomy_type('customer_group');
+        return view('backend.pages.account.customer.createCustomer',['customer_groups' => $customer_groups]);
+    }
+    
+    public function store(Request $request)
+    {
+        $data = $request->all();
+        
+        $time = time();
+        $customer = new Customer ;
+        $taxonomy = new Taxonomy;
+        $user_relationships = new UserRelationships;
+        /*-- Validator --*/
+        $validator = Validator::make($data,[
+            'nickname' => 'between:5,40',
+            'telephone' => 'regex:/\(?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/|between:8,11',
+            'password' => 'min:6|confirmed',
+            'email' => 'email|unique:qm_customer,customer_email',
+            
+        ],[
+            'nickname.between' => 'Tên phải dài từ 5 đến 40 kí tự',
+            'telephone.regex' => 'Điện thoại không đúng, vui lòng nhập lại',
+            'telephone.between' => 'Số điện thoại phải từ 8 đến 11 số',
+            'password.min' => 'Mật khẩu cần có ít nhất 6 ký tự',
+            'password.confirmed' => 'Mật khẩu và mật khẩu xác nhận cần phải giống nhau',
+            'email.email' => 'Email không đúng, vui lòng nhập lại',
+            'email.unique' => 'Email đã tồn tại, vui lòng nhập email mới',
+            
+        ]);
+
+        if( $validator->fails() )
+        {
+            return redirect('admin/customer/create')->withErrors($validator)->withInput();
+        } 
+        // Kiem tra 1 trong 3 truong co duoc nhap ko
+        if( !$data['nickname'] && !$data['telephone']  && !$data['email'] ){
+            $validator->getMessageBag()->add('','Bạn phải nhập ít nhất email, tên hoặc số điện thoại');
+            return redirect('admin/customer/create')->withErrors($validator)->withInput();
+        }
+
+        //Kiem tra nhom khach hang
+        if($data['level']){
+            $check_level = $taxonomy -> Get_taxonomy_id($data['level'], 'customer_group');
+            if(!$check_level){
+                $validator->getMessageBag()->add('','Nhóm khách hàng không đúng');
+                return redirect('admin/customer/create')->withErrors($validator)->withInput();
+            }
+        }
+        /*-- End Validator --*/
+        
+       
+        $dataInsert = [];
+        
+        /*-- Check Unique Username --*/
+        if( strlen($data['username']) == 0 )
+        {
+            $data['username'] = 'guest_'.$time;
+            
+            $_user = $user->getByUsername_user($data['username'],[])->get();
+            $i = 1;
+            while( count($_user) >=1 )
+            {
+                $data['username'] = $data['username'].$i;
+                $_user = $user->getByUsername_user($data['username'],[])->get();
+                $i++;
+            }
+        }
+        /*-- End Check Unique Username --*/
+        
+        $dataInsert['user_username'] = $data['username'];
+        
+        if( strlen($data['password']) > 0 )
+        {
+            $dataInsert['user_pass'] = md5($data['password']);
+        }
+        
+        $dataInsert['user_email'] = $data['email'];
+        $dataInsert['user_nickname'] = strip_tags(trim($data['nickname']));
+        $dataInsert['user_registered'] = $time;
+        
+        $arrayStatus = [1,0];
+        if( !in_array($data['status'],$arrayStatus) )
+        {
+            $data['status'] = 1;
+        }
+
+        $dataInsert['user_status'] = $data['status'];
+        
+        $dataInsert['user_level'] = 4;
+        
+        $dataInsert['user_telephone'] = $data['telephone'];
+        
+        $lastInsertId = $user->insert_user($dataInsert);
+        
+        /*-- Insert Data To UserMeta --*/
+        $userMeta = new Usermeta;
+        $arrayUserMeta = [];
+            
+            /*-- Address --*/
+        $arrayUserMeta['user_address'] = strip_tags(trim($data['address']));
+            /*-- End Address --*/
+            
+            /*-- Gender --*/
+        $arrayGender = [1,2,3];
+        if( !in_array($data['gender'],$arrayGender) )
+        {
+            $data['gender'] = 1;
+        }
+        $arrayUserMeta['user_gender'] = $data['gender'];
+            /*-- End Gender --*/
+            
+            /*-- Facebook --*/
+        $arrayUserMeta['user_facebook'] = '';
+            /*-- End Facebook --*/
+
+        $dataInsertMeta['user_id'] = $lastInsertId;
+        $dataInsertMeta['meta_key'] = 'user_data';
+        $dataInsertMeta['meta_value'] = encode_serialize($arrayUserMeta);
+
+        $userMeta->insert_User_Meta($dataInsertMeta);
+        /*-- End Insert Data To UserMeta --*/
+       
+        /*Thêm cho nhóm khách hàng*/
+        $customer_group = isset($data['level'])? $data['level'] : '';
+        if($customer_group){
+            $check_group = $taxonomy -> Get_taxonomy_id($customer_group, 'customer_group');
+            if($check_group){
+                $user_relationships -> Insert_user_relationships($customer_group, $lastInsertId);
+            }
+        }
+        /* End nhóm khách hàng*/
+		/*
+         * ADD DATABASE LOG
+         */
+            addTableLog("App\Models\Logs", Session::get('user_id'), 'customer', __FUNCTION__, "0,0,0");
+        /* END SAVE DATABASE LOG */
+
+        return redirect('admin/customer');
+    }
+    
+    public function edit($idUser)
+    {
+        $userObject = new User;
+        $userMetaObject = new Usermeta;
+        $taxonomy = new Taxonomy;
+        $user_relationships = new UserRelationships;
+        $list_customer_groups = $taxonomy->Get_taxonomy_type('customer_group');
+        $_customer_group = $user_relationships->Get_user_relationship($idUser);
+        $customer_group = isset($_customer_group) ? $_customer_group->taxonomy_id : 0; 
+        $user = $userObject->getById_user($idUser,[4])->first();
+        
+        if( count($user) == 0 )
+        {
+            return redirect('admin/customer');
+        }
+        
+        $userMeta = [];
+
+        $userMeta = decode_serialize($userMetaObject->get_User_Meta_Value($idUser,'user_data'));
+        
+        return view('backend.pages.account.customer.editCustomer',[
+            'user' => $user,
+            'userMeta' => $userMeta,
+            'list_customer_groups' => $list_customer_groups,
+            'customer_group' => $customer_group
+        ]);
+    }
+    
+    public function update($idUser,Request $request)
+    {
+        $data = $request->all();
+        $dataUserUpdate = [];
+        $userObject = new User;
+        $userMetaObject = new Usermeta;
+        $user_relationships = new UserRelationships;
+        $taxonomy = new Taxonomy;
+        
+        /*-- Validator --*/
+        $validator = Validator::make($data,[
+            'username' => 'regex:/^[A-Za-z0-9_]+$/|between:5,32|unique:qm_user,user_username,'.$idUser.',user_id',
+            'password' => 'min:6|confirmed',
+            'email' => 'email|unique:qm_user,user_email,'.$idUser.',user_id',
+            'telephone' => 'regex:/\(?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/',
+            'nickname' => 'required',
+        ],[
+            'username.regex' => 'Username bao gồm ký tự hoặc là số hoặc dấu gạch dưới',
+            'username.between' => 'Username phải từ 5 đến 32 ký tự',
+            'username.unique' => 'Username đã tồn tại',
+            'password.min' => 'Mật khẩu cần có ít nhất 6 ký tự',
+            'password.confirmed' => 'Mật khẩu và mật khẩu xác nhận cần phải giống nhau',
+            'email.email' => 'Email không đúng, vui lòng nhập lại',
+            'email.unique' => 'Email đã tồn tại, vui lòng nhập email mới',
+            'telephone.regex' => 'Điện thoại không đúng, vui lòng nhập lại',
+            'nickname.required' => 'Bạn cần phải nhập nickname',
+        ]);
+        
+        if( $validator->fails() )
+        {
+            return redirect('/admin/customer/edit/'.$idUser)->withErrors($validator)->withInput();
+        }
+        /*-- End Validator --*/
+        
+        $user = $userObject->getById_user($idUser,[4])->first();
+        
+        if( count($user) == 0 )
+        {
+            return redirect('admin/customer');
+        }
+        
+        /*-- Check Unique Username --*/
+        // if( strlen($data['username']) == 0 )
+        // {
+        //     $data['username'] = $user->user_username;
+        
+        //     //$_user = User::where('user_username',$data['username'])->where('user_id','<>',$idUser)->get();
+        //     $_user = $userObject->getByUsernameExceptId_user($data['username'],$idUser)->get();
+        //     $i = 1;
+        //     while( count($_user) >=1 )
+        //     {
+        //         $data['username'] = $data['username'].$i;
+        //         //$_user = User::where('user_username',$data['username'])->where('user_id','<>',$idUser)->get();
+        //         $_user = $userObject->getByUsernameExceptId_user($data['username'],$idUser)->get();
+        //         $i++;
+        //     }
+        // }
+        /*-- End Check Unique Username --*/
+        
+        $dataUserUpdate['user_id'] = $idUser;
+        $dataUserUpdate['user_username'] = $data['username'];
+        
+        if( strlen($data['password']) > 0 )
+        {
+            $dataUserUpdate['user_pass'] = md5($data['password']);
+        }
+        
+        $dataUserUpdate['user_email'] = $data['email'];
+        
+        $dataUserUpdate['user_nickname'] = strip_tags(trim($data['nickname']));
+        
+        $arrayStatus = [1,0];
+        if( !in_array($data['status'],$arrayStatus) )
+        {
+            $data['status'] = 1;
+        }
+        $dataUserUpdate['user_status'] = $data['status'];
+        
+        $dataUserUpdate['user_telephone'] = $data['telephone'];
+        
+        $userObject->update_user($dataUserUpdate);
+        
+        /*-- Update Data To UserMeta --*/
+        $arrayUserMeta = [];
+            
+            /*-- Address --*/
+        $arrayUserMeta['user_address'] = strip_tags(trim($data['address']));
+            /*-- End Address --*/
+            
+            /*-- Gender --*/
+        $arrayGender = [1,2,3];
+        if( !in_array($data['gender'],$arrayGender) )
+        {
+            $data['gender'] = 1;
+        }
+        $arrayUserMeta['user_gender'] = $data['gender'];
+            /*-- End Gender --*/
+            
+            /*-- Facebook --*/
+        $arrayUserMeta['user_facebook'] = '';
+            /*-- End Facebook --*/
+        
+        $userMetaObject->update_User_Meta_Value($idUser,'user_data',encode_serialize($arrayUserMeta));
+        
+        /*-- End Update Data To UserMeta --*/
+        /*Thêm cho nhóm khách hàng*/
+        //Trước khi thêm xóa trong user_relationships
+        $user_relationships -> Delete_user_relationships($idUser);
+        $customer_group = isset($data['level'])? $data['level'] : '';
+        if($customer_group){
+            $check_group = $taxonomy -> Get_taxonomy_id($customer_group, 'customer_group');
+            if($check_group){
+                $user_relationships -> Insert_user_relationships($customer_group, $idUser);
+            }
+        }
+
+        /* End nhóm khách hàng*/
+		/*
+         * ADD DATABASE LOG
+         */
+        addTableLog("App\Models\Logs", Session::get('user_id'), 'customer', __FUNCTION__, "0,0,0");
+        /* END SAVE DATABASE LOG */
+        
+        return redirect('admin/customer');
+    }
+    
+    public function destroy($idUser)
+    {
+        $userObject = new User;
+        $userMetaObject = new Usermeta;
+        $user_relationships = new UserRelationships;
+
+        $user = $userObject->getById_user($idUser,[4])->first();
+
+        if( count($user) == 0 )
+        {
+            return redirect('admin/customer');
+        }
+
+        $userObject->delete_user($idUser);
+        $userMetaObject->delete_User_Meta($idUser,'user_data');
+        $userMetaObject->delete_User_Meta($idUser,'token_reset_password');
+        $userMetaObject->delete_User_Meta($idUser,'time_reset_password');
+        $user_relationships -> Delete_user_relationships($idUser);
+		/*
+         * ADD DATABASE LOG
+         */
+        addTableLog("App\Models\Logs", Session::get('user_id'), 'customer', __FUNCTION__, "0,0,0");
+        /* END SAVE DATABASE LOG */
+        
+        return redirect('admin/customer');
+    }
+
+    public function GetUserListOrder(Request $request)
+    {
+        $data= $request->all();
+        $user = new User;
+        $type_request = '';
+        if( $request->isMethod('post') && $request->ajax()){
+            $type_request = 'ajax';
+        }
+        $objdata = Array('Response'=>'False','List'=>'');
+        if( $type_request != 'ajax' ){
+           // return $objdata;
+        }
+        $search = isset($data['search_customer']) ? $data['search_customer']: '';
+        $customer_list = $user -> Get_user_list_order( $search);
+        $view = view('backend.pages.account.customer.getOrderCustomer',[
+                'customer_list'         => $customer_list,
+        ]);
+        $objdata['List'] = urlencode($view);
+        if($objdata['List']){
+            $objdata['Response'] = 'True';
+        }
+        return $objdata;
+    }
+}

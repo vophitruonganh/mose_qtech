@@ -1,0 +1,179 @@
+@charset "UTF-8";
+/***********************************************************************/
+#list_collections {
+  margin: 30px 0px; }
+
+.block_collection {
+  margin-bottom: 70px; }
+  .block_collection .collection-top {
+    position: relative;
+    margin: 0px;
+    padding: 0px; }
+    .block_collection .collection-top .view-collection {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      padding: 0px;
+      margin: -20px 0px 0px -20px;
+      background: rgba(255, 255, 255, 0.2); }
+      .block_collection .collection-top .view-collection:before {
+        content: "\f129";
+        font-size: 14px;
+        font-family: "FontAwesome";
+        display: block;
+        text-align: center; }
+  .block_collection .collection-meta h3 {
+    text-align: center;
+    margin: 0px;
+    line-height: 40px;
+    font-size: 16px; }
+  .block_collection .collection-meta .collection_products {
+    text-align: center;
+    color: gray;
+    margin-bottom: 15px; }
+  .block_collection .collection-meta .collection_desc {
+    font-size: 12px;
+    text-align: center;
+    min-height: 40px;
+    margin-bottom: 15px;
+    padding: 0px 15px; }
+
+.content_sortPagiBar {
+  background: #FFFFFF;
+  border: 1px solid #e5e5e5;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  text-align: center; }
+  .content_sortPagiBar .pagination {
+    margin: 0px; }
+    .content_sortPagiBar .pagination > li {
+      float: left;
+      padding: 0px 8px; }
+      .content_sortPagiBar .pagination > li > a, .content_sortPagiBar .pagination > li span {
+        font-size: 12px;
+        color: #777777;
+        border-color: transparent; }
+        .content_sortPagiBar .pagination > li > a:hover, .content_sortPagiBar .pagination > li > a:focus, .content_sortPagiBar .pagination > li span:hover, .content_sortPagiBar .pagination > li span:focus {
+          color: #777777;
+          background: transparent;
+          border: 1px solid #e5e5e5; }
+    .content_sortPagiBar .pagination .active > a, .content_sortPagiBar .pagination .active span {
+      color: #777777;
+      background: transparent;
+      border: 1px solid #e5e5e5; }
+      .content_sortPagiBar .pagination .active > a:hover, .content_sortPagiBar .pagination .active > a:focus, .content_sortPagiBar .pagination .active span:hover, .content_sortPagiBar .pagination .active span:focus {
+        background: transparent;
+        color: #777777; }
+    .content_sortPagiBar .pagination .pagination_previous > a, .content_sortPagiBar .pagination .pagination_previous span {
+      position: relative;
+      height: 30px;
+      font-size: 0px; }
+      .content_sortPagiBar .pagination .pagination_previous > a:before, .content_sortPagiBar .pagination .pagination_previous span:before {
+        content: "Quay Lại";
+        font-weight: 300;
+        font-size: 12px;
+        color: #777777;
+        display: block; }
+    .content_sortPagiBar .pagination .pagination_next > a, .content_sortPagiBar .pagination .pagination_next span {
+      position: relative;
+      height: 30px;
+      font-size: 0px; }
+      .content_sortPagiBar .pagination .pagination_next > a:before, .content_sortPagiBar .pagination .pagination_next span:before {
+        content: "Tiếp";
+        font-weight: 300;
+        font-size: 12px;
+        color: #777777;
+        display: block; }
+
+.page-heading {
+  margin: 0px 0px 10px 0px;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: "Times New Roman", Times, serif;
+  color: #000000;
+  line-height: 30px; }
+
+.content_scene_cat {
+  margin-bottom: 15px; }
+  .content_scene_cat .cat_desc {
+    padding: 15px;
+    background: #FFFFFF;
+    color: #777777;
+    font-size: 11px; }
+    .content_scene_cat .cat_desc p {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13px;
+      color: #000000;
+      margin: 0px; }
+
+.category-heading {
+  font-size: 11px;
+  font-weight: 300;
+  padding: 9px 20px;
+  border: 1px solid #e5e5e5;
+  margin: 0px;
+  color: #777777;
+  background: #FFFFFF; }
+
+.sortPagiBar label {
+  font-weight: 300;
+  line-height: 28px;
+  margin: 0px;
+  padding: 0px 10px; }
+
+.sortPagiBar #SortBy {
+  height: 28px;
+  border: 1px solid #e5e5e5; }
+
+.sortPagiBar .form-horizontal {
+  text-align: right; }
+
+.collection-view {
+  text-align: left; }
+  .collection-view .change-view {
+    height: 28px;
+    background: transparent;
+    border: 1px solid #e5e5e5;
+    color: #dbdbdb; }
+    .collection-view .change-view:hover, .collection-view .change-view.change-view--active {
+      background: transparent;
+      color: #000000; }
+    .collection-view .change-view .fallback-text {
+      display: none; }
+
+.product_list.product-border {
+  background: white;
+  padding: 0px 17px;
+  border-right: 1px solid #e5e5e5;
+  border-left: 1px solid #e5e5e5; }
+
+.product_list.loading {
+  position: relative; }
+  .product_list.loading:before {
+    content: "";
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    margin-left: -25px;
+    border-radius: 5px;
+    over-flow: hidden;
+    display: block;
+    z-index: 3;
+    background: url(//hstatic.net/470/1000036470/1000066366/loading.gif?v=657) no-repeat center center #FFFFFF;
+    -webkit-box-shadow: 0px 2px 8px 0px rgba(50, 50, 50, 0.5);
+    box-shadow: 0px 2px 8px 0px rgba(50, 50, 50, 0.5); }
+  .product_list.loading:after {
+    content: "";
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2); }

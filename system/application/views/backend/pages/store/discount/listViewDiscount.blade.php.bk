@@ -1,0 +1,59 @@
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th class="table-check"><input type="checkbox" id="check-all" class="filled-tbl" /><label for="check-all"></label></th>
+            <th>Loại khuyến mãi</th>
+            <th>Tình trạng</th>
+            <th class="text-xs-center">Số lần sử dụng</th>
+            <th>Thời gian</th>
+        </tr>
+    </thead>
+    <tbody>
+    @if( count($discounts) == 0 )
+        <tr><th class="table-check"></th><td colspan="5">@include('backend.includes.nodata')</td></tr>
+    @else
+    <?php $i = 0; ?>
+    @foreach( $discounts as $discount_id => $discount)
+    <?php $i++; ?>
+    <tr data-id="{{ $discount_id }}">
+        <th class="table-check"><input id="tbl-check-{{$i}}" type="checkbox" class="filled-tbl" name="check[]" id="check[]" value="{{ $discount_id }}" /><label for="tbl-check-{{$i}}"></label></th>
+        <td class="col-2">
+            <div>{{ $discount['first_code'] }}</div>
+            <div class="title-link"><a href="#discount-modal" data-toggle="modal">{{ $discount['last_code'] }}</a></div>
+            <p>{!! $discount['description'] !!}</p>
+            @if( strlen($discount['allow_promotion']) > 0 ) <p>{{ $discount['allow_promotion'] }}</p> @endif
+        </td>
+        <td>{{ $discount['status'] }}</td>
+        <td class="text-xs-center">{{ $discount['discount_limit_time_used'] }}</td>
+        <td>Bắt đầu: {{ $discount['date_start'] }} <br />Kết thúc: {{ $discount['date_end'] }}</td>
+    @endforeach
+    </tbody>
+    @endif
+</table>
+<div class="modal fade in" id="discount-modal" tabindex="-1" role="dialog" aria-hidden="true">
+ 	<div class="modal-dialog" role="details">
+    	<div class="modal-content">
+      		<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel">Chi tiết khuyến mãi</h4></div>
+      		<div class="modal-body font-lg-size">
+      			<p><span>Mã khuyến mãi:</span> <span class="font-weight-bold text-danger">O1VNVIZBNFLA</span></p>
+      			<p class="text-muted">Sử dụng chung với chương trình khuyến mãi</p>
+      			<p><strong>Không giới hạn số lần sử dụng</strong></p>
+      			<!-- <p>Số lần sử dụng khuyến mãi: <strong>50/100</strong></p> -->
+      		<!-- 	<p>Giảm <strong>80%</strong> tất cả đơn hàng</p>
+      			<p>Giảm <strong>80%</strong> cho nhóm khách hàng <a href="">Khách hàng thân thiện</a> (áp dụng cho từng sản phẩm trong đơn hàng)</p>
+      			<p>Giảm <strong>80%</strong> cho nhóm sản phẩm <a href="">Nokia</a> (áp dụng cho đơn hàng)</p>
+      			<p>Giảm <strong>80%</strong> cho đơn hàng từ <strong>500.000đ</strong> trở lên</p> -->
+      			<p>Giảm <strong>80%</strong> cho đơn hàng khi mua từ 1 sản phẩm trở lên</p>
+      			<p><i class="material-icons md-16">timer</i> Bắt đầu khuyến mãi: <strong>16:53 15/10/2016</strong></p>
+      	<!-- 		<p><i class="material-icons md-16">timer_off</i> Kết thúc khuyến mãi: <strong>16:53 15/10/2016</strong></p> -->
+      			<p><i class="material-icons md-16">timer_off</i> <strong>Khuyến mãi không bao giờ hết hạn</strong></p>
+      			<p>Tình trạng: <strong class="text-primary">Đã kích hoạt</strong></p>
+      		</div>
+      		<div class="modal-footer">
+      			<button type="button" class="btn btn-primary">Sử dụng khuyến mãi</button>
+        		<button type="button" class="btn btn-danger">Ngưng khuyến mãi</button>
+        		<button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+      		</div>
+    	</div>
+  	</div>
+</div>

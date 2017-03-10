@@ -1,0 +1,25 @@
+/***********************************************************************/
+.wishlist-page {
+  background: #FFFFFF;
+  padding: 20px; }
+
+.wishlist-product {
+  width: 100%;
+  margin-bottom: 15px; }
+  .wishlist-product thead {
+    height: 40px;
+    border: 1px solid #e5e5e5;
+    background-color: #3e3d39; }
+    .wishlist-product thead th {
+      padding: 10px 10px;
+      border-right: 1px solid #e5e5e5;
+      color: #e76d66; }
+      .wishlist-product thead th:last-child {
+        border-right: 0px; }
+  .wishlist-product tbody tr {
+    border: 1px solid #e5e5e5; }
+  .wishlist-product .no_product-wishlist {
+    padding: 10px;
+    text-align: center;
+    display: block;
+    width: 100%; }

@@ -1,0 +1,1 @@
+<div class="data-empty">No data</div>

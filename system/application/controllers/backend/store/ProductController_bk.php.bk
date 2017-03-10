@@ -1,0 +1,1138 @@
+<?php
+
+namespace App\Http\Controllers\backend\store;
+
+use Illuminate\Http\Request;
+
+use App\Http\Requests;
+//use App\Http\Controllers\BackendController;
+use App\Http\Controllers\backend\BackendController;
+/*-- Call Other Controller --*/
+use App\Http\Controllers\backend\attachment\AttachmentController;
+/*-- End Call Other Controller --*/
+/*
+ * Use Library of Laravel
+ */
+use App\Models\product;
+use App\Models\productmeta;
+// use App\Models\Product;
+// use App\Models\ProductMeta;
+use App\Models\Term;
+use App\Models\Termmeta;
+//use App\Models\Termrelation;
+use App\Models\ProductRelationships;
+use App\Models\Option;
+use App\Models\Attachment;
+use App\Models\Taxonomy;
+use App\Models\TaxonomyMeta;
+use Validator;
+use Session;
+use DB;
+use App\Libraries\FacebookLibrary\Facebook;
+use App\Libraries\FacebookLibrary\FacebookApiException;
+
+class ProductController extends BackendController
+{
+	// public function index()
+ //    {   
+ //        $products=DB::table('qm_product')->join('qm_productmeta','qm_product.product_id','=','qm_productmeta.product_id')
+ //        ->where('product_type','product')
+ //        ->orderBy('qm_product.product_id','DESC')
+ //        ->paginate(10);
+        
+ //        return view('backend.pages.store.product.listProduct',[
+ //            'products' => $products,
+ //        ]);
+ //    }
+
+    public function index(Request $request)
+    {   
+
+        // return date('d/m/Y');
+        $product = new Product;
+        $data = $request->all();
+        $search = isset($data['search']) ? $data['search'] : '';
+        $check = isset($data['check']) ? $data['check'] : [];
+        $select_action = isset($data['select_action']) ? $data['select_action'] : '';
+        $product_status = isset($data['product_status']) ? $data['product_status'] : 'all';
+        $type = isset($data['type']) ? $data['type'] : '';
+        $sortBy = isset($data['sortBy']) ? $data['sortBy'] : 'created-desc';
+        $arr_product_status = ['all','public','pending','draft','trash'];
+
+        //Check sortBy
+        $arr_sortBy = ['created-asc','created-desc'];
+        if(!in_array($sortBy, $arr_sortBy)){
+            $sortBy = 'created-desc';
+        }
+        /*kiểm tra kiểu request*/
+        $type_request = '';
+        if( $request->isMethod('product') && $request->ajax()){
+            $type_request = 'ajax';
+        }
+        
+        //Đếm tình trạng sản phẩm
+        $product_count = [];
+        $product_count['all']= $product->Count_product_status('all');
+        $product_count['public'] = $product->Count_product_status('public');
+        $product_count['pending'] = $product->Count_product_status('pending');
+        $product_count['trash'] = $product->Count_product_status('trash');
+        $product_count['draft'] = $product->Count_product_status('draft');
+
+        if($type_request == 'ajax')
+        {
+            if(!in_array($product_status, $arr_product_status))
+            {
+                 return '{"Response":"False","Redirect":"'.url('admin/product').'"}';
+                 if( $type =='action' ){
+                    $count = count($check);
+                    if($select_action == 'edit' && $count){
+                        $output = Array('Response'=>'True','Redirect'=>url('admin/product/edit/'.$check[0]));
+                        return $output;
+                    }else if($select_action=='trash'){
+                    }
+                 }
+            }
+
+        }else{
+            if(!in_array($product_status, $arr_product_status))
+                return redirect('admin/product');
+            if($select_action)
+            {
+                $count = count($check);
+                if($select_action == 'edit' && $count){
+                    return redirect('admin/product/edit/'.$check[0]);
+                }else if($select_action == 'trash' && $count){
+                    //$this->productAction($check,'trash',$type_request);
+                    $product -> Action_product($check, 'trash');
+                }else if($select_action == 'restore' && $count){
+                    //$this->productAction($check,'restore',$type_request);
+                    $product -> Action_product($check, 'restore');
+                }else if($select_action == 'delete' && $count){
+                    //$this->productAction($check,'delete',$type_request);
+                    $product -> Action_product($check, 'delete');
+                }
+            }
+
+            $products = $this->productActionSearch($search, $product_status, $sortBy);
+            return view('backend.pages.store.product.listProduct',[
+            'products'         => $products,
+            'product_status'   => $product_status,
+            'product_count'    => $product_count,
+            'search'        => $search,
+            'sortBy'        => $sortBy
+        ]);
+
+        }
+        
+    }
+	
+
+    private function productAction( $checks = array(), $product_action = 'trash' , $type_request)
+    {
+        $check_error = 0;
+        if(count($checks)==0)
+        {
+            return $check_error = 1;
+        }
+        $count = DB::table('qm_product')->where('product_type','product')->whereIn('product_id',$checks)->count();
+        if( $count != count($checks))
+        {
+            return $check_error = 1;
+        }
+        $arr_action = ['trash','restore','delete'];
+        if(!in_array($product_action, $arr_action))
+        {
+            return $check_error = 1;
+        }
+        if($product_action =='trash'){
+            foreach ($checks as $check) 
+            {
+                 DB::table('qm_product')->where('product_type','product')->where('product_id',$check)->update(['product_status' => $product_action]);
+            }
+        }
+        if($product_action == 'restore')
+        {
+            foreach ($checks as $check) 
+            {
+                 DB::table('qm_product')->where('product_type','product')->where('product_id',$check)->update(['product_status' => 'public']);
+            }
+        }
+        if($product_action =='delete')
+        {
+            foreach($checks as $check)
+            {
+                $this->destroy($check);
+            }
+        }
+        //Trả kết quả
+        if($type_request =='ajax'){
+            if($check_error ==1 )
+            {
+                return respones_redirect($type_request,'admin/product','{"Response":"False","Message":"Xóa bài viết thất bại"}');
+            }
+            else
+            {
+                return respones_redirect($type_request,'admin/product','{"Response":"True","Message":"Xóa bài viết thành công."}');
+            }
+        }
+        return redirect('admin/product');
+    }
+    private function productActionSearch( $search = '', $product_status = 'all', $sortBy = 'created-desc')
+    {
+        $product = new Product;
+         $arr_product_status = ['public', 'pending' ,'trash' , 'draft'] ;
+         if($sortBy == 'created-asc'){
+            $sortBy = 'ASC';
+         }else{
+            $sortBy = 'DESC';
+         }
+         if(in_array($product_status, $arr_product_status))
+         {
+            return $product->Search_product($product_status,$search,$sortBy);
+
+         }
+        return $product->Search_product('',$search,$sortBy);
+
+    }
+	public function create()
+    {
+        // $data = [];
+        // $data['product_id'] = 381;
+        // $data['user_id'] = 3;
+        // $data['product_date'] = 123;
+        // $data['product_modified'] = 321;
+        // $data['product_title'] = 'bcd';
+        // $data['product_content'] = 'def';
+        // $data['product_excerpt'] = '100';
+        // $data['product_status'] = 1;
+        // $data['product_slug'] = 2;
+        // $data['product_parent'] = 0;
+        // $data['comment_status'] = 4;
+        // $a = Product::Update_product($data);
+
+        // print_r($a);
+        // exit();
+        /*-- Featured Image --*/
+        //$attachment = new AttachmentController;
+        //$listFeaturedImage = $attachment->getDataImage();
+        /*-- End Featured Image --*/
+
+        /*-- Data Seo --*/
+        $taxonomy = new Taxonomy;
+        $seoData = [];
+        
+            /*-- Seo Title --*/
+        $seoData['title'] = Option::where([
+            'option_name' => 'site_title',
+        ])->first()->option_value;
+            /*-- End Seo Title --*/
+            
+            /*-- Seo Url --*/
+        $seoData['url'] = Option::where([
+            'option_name' => 'site_url',
+        ])->first()->option_value;
+            /*-- End Seo Url --*/
+            
+        /*-- End Data Seo --*/
+        $group_products = $taxonomy -> Get_taxonomy_type('group_product');
+        $category_products = $taxonomy -> Get_taxonomy_type('product_category');
+        $product_tags = $taxonomy -> Get_taxonomy_type('product_tag');
+        $manufactory_products = $taxonomy -> Get_taxonomy_type('manufactory_product');
+        // foreach($group_products as $group_product)
+        // {
+        //     array_push($list_id,$group_product->term_id);
+        // }
+        return view('backend.pages.store.product.create',[
+			'group_products' => $group_products,
+            'category_products' => $category_products,
+            'product_tags' => $product_tags,
+            'manufactory_products' => $manufactory_products,
+            //'listFeaturedImage' => $listFeaturedImage,
+            'seoData' => $seoData,
+            ]);
+    }
+    public function store(Request $request)
+    {
+    	$data = $request->all();
+        $product=new product;
+        $productMeta=new productmeta;
+        $product_relationships = new ProductRelationships;
+        $taxonomy = new Taxonomy;
+        $taxonomy_meta = new TaxonomyMeta;
+        $option = new Option;
+        $data_productmeta=[];
+
+
+        $validator = Validator::make($data,[
+            //'title'=>'required',
+            'product_code'=>'required',
+            'price_old'=>'required|numeric',
+            'price_new'=>'required|numeric',
+        ],[
+            //'title.required'=>'Chưa nhập tiêu đề',
+            'product_code.required'=>'Chưa nhập mã sản phẩm',
+            'price_old.required'=>'Chưa nhập giá cũ',
+            'price_old.numeric' => 'Giá phải là số',
+            'price_new.required'=>'Chưa nhập giá mới',
+            'price_new.numeric' => 'Giá phải là số'
+        ]);
+        
+        if( $validator->fails() )
+        {
+            return redirect('admin/product/create')->withErrors($validator)->withInput();
+        }
+
+        /*-- Check Id product Featured Image --*/
+        $product_featured_image = isset($data['product_featured_image']) ? $data['product_featured_image'] : null;
+        if( $product_featured_image !== null )
+        {
+            $attachment = Attachment::where('attachment_id',$product_featured_image)->where('attachment_type','image')->first();
+            if( count($attachment) == 0 )
+            {
+                return redirect('admin/product');
+            }
+        }
+        /*-- End Check Id product Featured Image --*/
+
+        /*-- Check Product Code --*/
+        // $productmeta=productmeta::where('meta_key','product_data')->get();
+        $productmeta=$productMeta->Get_all_product_meta();
+        foreach ($productmeta as $rows) {
+            $temp=$rows->meta_value;
+            $temp=decode_serialize($temp);
+            if($temp['product_code']==$data['product_code']){
+                $validator->getMessageBag()->add('product_code','Mã sản phẩm đã tồn tại');
+                return redirect('admin/product/create')->withErrors($validator)->withInput();
+            }
+            
+        }
+        /*-- End Product Code --*/
+		
+		/*-- Check Category Product --*/
+        if(isset($data['product_category'])){
+            $p_cat_arr = $data['product_category'];
+            foreach($p_cat_arr as $p_cat){
+                $check_category_product=Term::where('term_type','product_category')
+                ->where('term_id',$p_cat)->first();
+                if(count($check_category_product)==0){
+                    $validator->getMessageBag()->add('product_category','Loại sản phẩm không hợp lệ');
+                    return redirect('admin/product/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+       
+        /*-- End Check Category Product --*/
+
+        /*-- Check Check Group Product --*/
+        if(isset($data['product_group'])){
+            $p_group_arr = $data['product_group'];
+            foreach($p_group_arr as $p_group){
+                $check_group_category=Term::where('term_type','product_group')
+                ->where('term_id',$p_group)->first();
+                if(count($check_group_category)==0){
+                    $validator->getMessageBag()->add('product_group','Nhóm sản phẩm không hợp lệ');
+                    return redirect('admin/product/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+        /*-- End Check Group Product--*/
+
+        /*--check manufactory_product--*/ 
+        if(isset($data['manufactory_product']))
+        {
+            $manufactorys = $data['manufactory_product'];
+            foreach($manufactorys as $manufactory)
+            {
+                $check_manufactory_product = Term::where('term_type','manufactory_product')->where('term_id',$manufactory)->first();
+                if(count($check_manufactory_product) == 0)
+                {
+                    $validator->getMessageBag()->add('manufactory_product','Nhà cung cấp không hợp lệ');
+                    return redirect('admin/product/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+        /*--end check--*/ 
+
+        /*-- Check Product Tag --*/
+        if(isset($data['product_tag'])){
+            $product_tag_arr = $data['product_tag'];
+            foreach($product_tag_arr as $product_tag){
+                $check_product_tag=Term::where('term_type','product_tag')
+                ->where('term_id',$product_tag)->first();
+                if(count($check_product_tag)==0){
+                    $validator->getMessageBag()->add('product_tag','Product Tag không hợp lệ');
+                    return redirect('admin/product/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+        /*-- End Product Tag--*/
+
+		//Kiểm tra nút submit
+        // if( $data['submit'] != 0 && $data['submit']!= 1 ){
+        //     return redirect('admin/product');
+        // }
+        //End submit
+        
+        $data['title'] = strip_tags(trim($data['title']));
+        /*-- Check Slug --*/
+        if( $data['slug'] == null )
+        {
+            if(strlen($data['title'])==0){
+                $data['slug'] = 'no title';
+            }else{
+                $data['slug'] = $data['title'];
+            }
+        }
+        $data['slug'] = str_slug($data['slug']);
+        
+        $_slug = $data['slug'];
+        $_slugUndercore = $_slug.'-';
+        // $_products=product::where('product_slug',$_slug)->where('product_type','product')->get();
+        $_products=$product->Get_product_slug($_slug);
+        $i=1;
+        while( count($_products) >= 1 )
+        {
+            $_slug = $_slugUndercore.$i;
+            // $_products = product::where('product_slug',$_slug)->where('product_type','product')->get();
+            $_products=$product->Get_product_slug($_slug);
+            $i++;
+        }
+        $data['slug']=$_slug;
+        /*-- End Check Slug --*/
+        
+        /*xử lý thời gian*/
+//        $arr_post_date = explode(" ", $post_date);
+        //return $arr_post_date;
+//        $arr_day = explode("/", $arr_post_date[1]);
+//       $post_date = strtotime(date("$arr_day[2]/$arr_day[1]/$arr_day[0] $arr_post_date[0]"));
+        /*End xử lý*/
+
+
+        $dataproduct['product_slug'] = $data['slug'];
+        // $product->product_slug = $data['slug'];
+        // $product->user_id=Session::get('user_id');
+        $dataproduct['user_id'] = Session::get('user_id');
+        //xử lý thời gian
+        $time=time();
+        // $product->product_date = $time;
+        // $product->product_modified = $time;
+        $dataproduct['product_date'] = $time;
+        $dataproduct['product_modified'] = $time;
+        // $product->product_title = strip_tags(trim($data['title']));
+        $dataproduct['product_title'] = strip_tags(trim($data['title']));
+        $dataproduct['product_content'] = $data['content'];
+        $dataproduct['product_excerpt'] = strip_tags($data['excerpt']);
+        // $product->product_content = $data['content'];
+        // $product->product_excerpt = strip_tags($data['excerpt']);
+
+        $arrayproductStatus = [
+            'public',
+            'trash',
+            'draft',
+        ];
+        if( !in_array($data['product_status'],$arrayproductStatus) )
+        {
+            $data['product_status'] = 'public';
+        }
+        // $product->product_status=$data['product_status'];
+        $dataproduct['product_status'] = $data['product_status'];
+        
+        // $product->product_parent='0';
+        $dataproduct['product_parent'] = '0';
+        
+        $arrayCommentStatus = [
+            'yes',
+            'no',
+        ];
+        if( !in_array($data['product_comment'],$arrayCommentStatus) )
+        {
+            $data['product_comment'] = 'yes';
+        }
+        // $product->comment_status=$data['product_comment'];
+        $dataproduct['comment_status'] = $data['product_comment'];;
+        
+        // $product->product_type='product';
+        
+        // $product->save();
+        // $product_id = $product->max('product_id');
+        $product_id = $product->Insert_product($dataproduct);
+		
+		//product FACEBOOK
+        if($data['product_status'] == 'public' && Session::has('user_id_facebook')){
+            $facebook        = new Facebook(['appId' => '1136963499687042', 'secret' => '4abbfdcc36e14b6247e5f8247c5bf50f']);
+            
+            $param = array(
+                "message"       => $data['title'],
+                "picture"       => 'http://i.telegraph.co.uk/multimedia/archive/03589/Wellcome_Image_Awa_3589699k.jpg',
+                "link"          => url('product-detail/'.$data["slug"] . '.html'),
+                "name"          => $data['title'],
+                "description"   => empty($data['excerpt']) ? 'Day la san pham '.$data['title'] : $data['excerpt'],
+            );
+            
+            try {
+                $producted = $facebook->api('/'.Session::get('user_id_facebook').'/feed/', 'product', $param);
+            } catch (FacebookApiException $e) {
+                $errMsg = $e->getMessage();
+            }
+        }
+        //END product LEN FACEBOOK
+		
+        //danh muc san pham
+        if(isset($data['product_category'])){
+            $p_cat_arr = $data['product_category'];
+            foreach($p_cat_arr as $p_cat){
+                //Thêm mới
+                $product_relationships-> Insert_product_relationships( $p_cat, $product_id );
+                //Đếm sản phẩm của danh mục
+                $count = $product_relationships-> Count_product_relationships_term( $p_cat);
+                //Cập nhật count
+                $taxonomy -> Update_taxonomy_count($p_cat, $count);
+
+                //$tax_relationships->Insert_taxonomy_relationships($p_cat, $product_id);
+                // $termrelation=new Termrelation;
+                // $termrelation->product_id=$product_id;
+                // $termrelation->term_id=$p_cat;
+                // $termrelation->term_order=0;
+                // $termrelation->save();
+            }
+        }
+        /* Add new product category*/
+        $data['newcategory'] = strip_tags(trim($data['newcategory']));
+        if(strlen($data['newcategory'])>0){
+            $data['slug'] = slug_create('product_category', $data['newcategory']);
+            //Kiểm tra parent được chọn tồn tại ko
+            $newcategory_parent = DB::table('qm_term')->where('term_type','product_category')->where('term_id',$data['newcategory_parent'])->first();
+            if(!$newcategory_parent)
+            {
+                $data['newcategory_parent'] = 0;
+            }
+            $term = new Term;
+            $term->name = $data['newcategory'];
+            $term->parent_id = $data['newcategory_parent'];
+            $term->slug = $data['slug'];
+            $term->term_type = 'product_category';
+            $term->save();
+            $term_id = $term->id;
+            //Thêm vào term meta;
+            $term_meta = new Termmeta;
+            $meta_key = array();
+            $meta_value['excerpt'] = '';
+            $meta_value['seo_title'] = '';
+            $meta_value['seo_description'] = '';
+            $meta_value['seo_keyword'] = '';
+            $term_meta->term_id = $term_id;
+            $term_meta->meta_key = 'product_category_data';
+            $term_meta->meta_value = encode_serialize($meta_value);
+            $term_meta->save();
+            //Thêm vào term_relationships
+            DB::table('qm_term_relationships')->insert(['term_id'=>$term_id,'post_id'=>$product_id]);
+            $count = DB::table('qm_term_relationships')->where('term_id',$term_id)->count();
+            DB::table('qm_term')->where('term_id',$term_id)->where('term_type','product_category')->update(['count' => $count]);
+
+        }
+        //Nếu ko chọn category nào thì sẽ cho vào category mặc định
+        if( !isset($data['category_product']) && strlen(trim($data['newcategory'])) == 0)
+        {
+            $category_default = $option->getOptionValue_option('default_product_category');
+            
+            //Thêm mới
+            $product_relationships-> Insert_product_relationships( $category_default, $product_id );
+            //Đếm sản phẩm của danh mục
+            $count = $product_relationships-> Count_product_relationships_term( $category_default);
+            //Cập nhật count
+            $taxonomy -> Update_taxonomy_count($category_default, $count);
+        }
+
+        /* End new product category*/ 
+
+        //loai san pham
+        if(isset($data['group_product'])){
+            $p_group_arr = $data['group_product'];
+            foreach($p_group_arr as $p_group){
+            
+            //Thêm mới
+            $product_relationships-> Insert_product_relationships( $p_group, $product_id );
+            //Đếm sản phẩm của nhoms
+            $count = $product_relationships-> Count_product_relationships_term( $p_group);
+            //Cập nhật count
+            $taxonomy -> Update_taxonomy_count($p_group, $count);
+            }
+        }
+
+        //nhà cung cấp
+        if(isset($data['manufactory_product']))
+        {
+            $manufactorys = $data['manufactory_product'];
+            foreach ($manufactorys as $manufactory) {
+            //Thêm mới
+            $product_relationships-> Insert_product_relationships( $manufactory, $product_id );
+            //Đếm sản phẩm của nhoms
+            $count = $product_relationships-> Count_product_relationships_term( $manufactory);
+            //Cập nhật count
+            $taxonomy -> Update_taxonomy_count($manufactory, $count);
+            }
+        }
+
+        //product tag san pham
+        $data['newtags'] = trim($data['newtags']);
+        if(strlen($data['newtags'])>0)
+        {   
+            $newtags = explode(",", $data['newtags']);
+            foreach($newtags as $newtag)
+            {
+                $newtag = strip_tags(trim($newtag));
+                $check_tag=DB::table('qm_term')->where('term_type','product_tag')->where('name',$newtag)->first();
+                if($check_tag)
+                {
+                    //DB::table('qm_term_relationships')->insert(['post_id'=>$product_id,'term_id'=>$check_tag->term_id]);
+                    //$count = DB::table('qm_term_relationships')->where('term_id',$check_tag->term_id)->count();
+                    //DB::table('qm_term')->where('term_id',$check_tag->term_id)->update(['count'=>$count]);
+                    //Thêm mới
+                    
+                    $product_relationships-> Insert_product_relationships( $check_tag->term_id, $product_id );
+                    //Đếm sản phẩm của nhoms
+                    $count = $product_relationships-> Count_product_relationships_term( $check_tag->term_id);
+                    //Cập nhật count
+                    $taxonomy -> Update_taxonomy_count($check_tag->term_id, $count);
+
+                }
+                else
+                {
+                    //$term = new Term;
+                    $taxonomy_arr = [] ;
+                    $taxonomy_arr['name'] = $newtag;
+                    $taxonomy_arr['slug'] = slug_create('product_tag', $newtag);
+                    $taxonomy_arr['term_type'] = 'product_tag';
+                    $term_id = $taxonomy->Insert_taxonomy($taxonomy_arr);
+
+                    //thêm vào term_meta   
+                    $meta_value = [];
+                    $meta_value['excerpt'] = '';
+                    $meta_value['seo_title'] = '';
+                    $meta_value['seo_excerpt'] = '';
+                    $meta_value['seo_keyword'] = '';
+                    $value = encode_serialize($meta_value);   
+                    $taxonomy_meta-> Insert_tax_meta($term_id, 'product_tag_data', $value);
+                    //thêm vào relationships
+                    //DB::table('qm_term_relationships')->insert(['term_id'=>$term_id,'post_id'=>$product_id]);
+                    $product_relationships-> Insert_product_relationships( $term_id, $product_id );
+
+                    //$count = DB::table('qm_term_relationships')->where('term_id',$term_id)->count();
+                    $count = $product_relationships-> Count_product_relationships_term( $term_id);
+
+                    //DB::table('qm_term')->where('term_id',$term_id)->update(['count'=>$count]);
+                    $taxonomy -> Update_taxonomy_count($term_id, $count);
+                }
+            }
+        }
+
+        //end tag
+
+		
+        
+        $productmeta=new productmeta;
+        $data_productmeta['post_featured_image']=$product_featured_image;
+        $data_productmeta['product_code']=$data['product_code'];
+        $data_productmeta['price_old']=$data['price_old'];
+        $data_productmeta['price_new']=$data['price_new'];
+        $data_productmeta['seo_title']=strip_tags(trim($data['seo_title']));
+        $data_productmeta['seo_description']=strip_tags(trim($data['seo_description']));
+        $data_productmeta['seo_keyword']=strip_tags(trim($data['seo_keyword']));
+        $productmeta->Insert_product_meta($product_id, 'product_data', encode_serialize($data_productmeta));
+		
+		/*
+         * ADD DATABASE LOG
+         */
+        addTableLog("App\Models\Logs", Session::get('user_id'), 'product', __FUNCTION__, "$product_id,0,0");
+        /* END SAVE DATABASE LOG */
+        
+        return redirect('admin/product');
+    }
+    public function edit($product_id)
+    {
+        $_product = new Product;
+        $taxonomy = new Taxonomy;
+        $product_relationships = new ProductRelationships; 
+        $product = $_product-> Get_product_id( $product_id );
+		
+        //$group_products=Term::where('term_type','group_product')->get();
+        $group_products= $taxonomy-> Get_taxonomy_type('product_group');
+
+        //$category_products=Term::where('term_type','product_category')->get();
+        $category_products= $taxonomy-> Get_taxonomy_type('product_category');
+        // $product_categorys = DB::table('qm_term')->join('qm_term_relationships','qm_term.term_id','=','qm_term_relationships.term_id')
+        // ->where('qm_term_relationships.post_id',$product_id)
+        // ->get();
+        $product_categorys =  $product_relationships-> Get_product_relationships($product_id ,'product_category');
+
+        // $product_tags=DB::table('qm_term')->join('qm_term_relationships','qm_term.term_id','=','qm_term_relationships.term_id')
+        // ->where('qm_term_relationships.post_id',$product_id)->where('qm_term.term_type','product_tag')->get();
+        $product_tags = $product_relationships -> Get_product_relationships($product_id ,'product_tag');
+        $tag_name = '';
+         if($product_tags)
+        {
+            foreach($product_tags as $product_tag)
+            {
+                $tag_name.=$product_tag->name.',';
+            }
+        }
+        $manufactory_products = Term::where('term_type','manufactory_product')->get();
+
+        if( count($product) == 0 )
+        {
+            return redirect('admin/product');
+        }
+
+        
+        
+        $term_relation=DB::table('qm_term_relationships')->where('post_id',$product_id)->get();
+        $list_term=[];
+        foreach ($term_relation as $rows) {
+            array_push($list_term,$rows->term_id);
+        }
+
+        $product_meta=productmeta::where('product_id',$product_id)->first();
+        $product_cat = array();
+        foreach ($product_categorys as $product_categorys) {
+            $product_cat[] .= $product_categorys->term_id;
+        }
+
+        /*-- Get Image Feature --*/
+        $imageFeature = '';
+        $productFeatureImage = decode_serialize($product_meta["meta_value"])['post_featured_image'];
+        if( strlen($productFeatureImage) > 0 )
+        {
+            $query = Attachment::where('attachment_id',$productFeatureImage)->where('attachment_type','image')->first();
+            if( $query != null )
+            {
+                $imageFeature = $query->attachment_url;
+            }
+        }
+        /*-- End Get Image Feature --*/
+
+        return view('backend.pages.store.product.edit',[
+            'post'=>$product,
+            'post_meta'=>$product_meta,
+            'post_cat'=>$product_cat,
+            'tag_name'=>$tag_name,
+            'group_products'=>$group_products,
+            'category_products'=>$category_products,
+            'product_tags'=>$product_tags,
+            'manufactory_products' => $manufactory_products,
+            'list_term'=>$list_term,
+            'imageFeature' => $imageFeature,
+        ]);
+    }
+    
+    public function update($product_id,Request $request)
+    {   
+        $product=new Product;
+        $productMeta=new Productmeta;
+        $dataUpdate=array();
+        $data=$request->all();
+        $data_productmeta=[];
+        $validator = Validator::make($data,[
+            //'title'=>'required',
+            'product_code'=>'required',
+            'price_old'=>'required|numeric',
+            'price_new'=>'required|numeric',
+        ],[
+           // 'title.required'=>'Chưa nhập tiêu đề',
+            'product_code.required'=>'Chưa nhập mã sản phẩm',
+            'price_old.required'=>'Chưa nhập giá cũ',
+            'price_old.numeric' => 'Giá phải là số',
+            'price_new.required'=>'Chưa nhập giá mới',
+            'price_new.numeric' => 'Giá phải là số'
+            
+        ]);
+        if( $validator->fails() )
+        {
+            return redirect('admin/product/edit/'.$product_id)->withErrors($validator)->withInput();
+        }
+        // $productmeta=productmeta::where('meta_key','product_data')->where('product_id','<>',$product_id)->get();
+        $productmeta=$productMeta->Get_not_product_meta_key($product_id,'product_data');
+        foreach ($productmeta as $rows)
+        {
+            $temp=$rows->meta_value;
+            $temp=decode_serialize($temp);
+            if($temp['product_code']==$data['product_code']){
+                $validator->getMessageBag()->add('product_code','Mã sản phẩm đã tồn tại');
+                return redirect('admin/product/edit/'.$product_id)->withErrors($validator)->withInput();
+            }
+            
+        }
+        /*-- End Product Code --*/
+		/*-- Check Category Product --*/
+        // if(isset($data['category_product'])){
+        //     $p_cat_arr = $data['category_product'];
+        //     foreach($p_cat_arr as $p_cat){
+        //         $check_category_product=Term::where('term_type','product_category')
+        //         ->where('term_id',$p_cat)->first();
+        //         if(count($check_category_product)==0){
+        //             $validator->getMessageBag()->add('category_product','Loại sản phẩm không hợp lệ');
+        //             return redirect('admin/product/edit/'.$product_id)->withErrors($validator)->withInput();
+        //         }
+        //     }
+        // }
+        if(isset($data['product_category']))
+        {
+            foreach($data['product_category'] as $category)
+            {
+                $check = DB::table('qm_term')->where('term_type','product_category')->where('term_id',$category)->first();
+                if(!$check)
+                {
+                    return redirect('admin/product');
+                }
+            }
+        }
+        /*-- End Check Category Product --*/
+
+        /*-- Check Id product Featured Image --*/
+        $product_featured_image = isset($data['post_featured_image']) ? $data['post_featured_image'] : null;
+        if( $product_featured_image !== null )
+        {
+            $attachment = Attachment::where('attachment_id',$product_featured_image)->where('attachment_type','image')->first();
+            if( count($attachment) == 0 )
+            {
+                return redirect('admin');
+            }
+        }
+        /*-- End Check Id product Featured Image --*/
+
+        /*-- Check Check Group Product --*/
+        if(isset($data['group_product'])){
+            $p_group_arr = $data['group_product'];
+            foreach($p_group_arr as $p_group){
+                $check_group_category=Term::where('term_type','group_product')
+                ->where('term_id',$p_group)->first();
+                if(count($check_group_category)==0){
+                    $validator->getMessageBag()->add('group_product','Nhóm sản phẩm không hợp lệ');
+                    return redirect('admin/product/edit/'.$product_id)->withErrors($validator)->withInput();
+                }
+            }
+        }
+        
+        /*-- End Check Group Product--*/
+
+        /*--check manufactory_product--*/ 
+        if(isset($data['manufactory_product']))
+        {
+            $manufactorys = $data['manufactory_product'];
+            foreach($manufactorys as $manufactory)
+            {
+                $check_manufactory_product = Term::where('term_type','manufactory_product')->where('term_id',$manufactory)->first();
+                if(count($check_manufactory_product) == 0)
+                {
+                    $validator->getMessageBag()->add('manufactory_product','Nhà cung cấp không hợp lệ');
+                    return redirect('admin/product/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+        /*--end check--*/ 
+
+        /*-- Check Product Tag --*/
+        if(isset($data['product_tag'])){
+            $product_tag_arr = $data['product_tag'];
+            foreach($product_tag_arr as $product_tag){
+                $check_product_tag=Term::where('term_type','product_tag')
+                ->where('term_id',$product_tag)->first();
+                if(count($check_product_tag)==0){
+                    $validator->getMessageBag()->add('product_tag','Product Tag không hợp lệ');
+                    return redirect('admin/product/edit/'.$product_id)->withErrors($validator)->withInput();
+                }
+            }
+        }
+        /*-- End Product Tag--*/
+
+        $data['title'] = strip_tags(trim($data['title']));
+        
+        if( $data['slug'] == null )
+        {
+            if(strlen($data['title'])==0){
+                $data['slug'] = 'no title';
+            }else{
+                $data['slug'] = $data['title'];
+            }
+        }
+        $data['slug'] = str_slug($data['slug']);
+        $_slug = $data['slug'];
+        $_slugUndercore = $_slug.'-';
+        $_products=product::where('product_slug',$_slug)->whereNotIn('product_id',[$product_id])->get();
+        $i=1;
+        while( count($_products) >=1 )
+        {
+            //
+            $_slug = $_slugUndercore.$i;
+            $_products = product::where('product_slug',$_slug)->whereNotIn('product_id',[$product_id])->get();
+            $i++;
+        }
+
+        $data['slug']=$_slug;   
+        $dataUpdate['user_id']=Session::get('user_id');
+        //xử lý thời gian
+        $time=time();
+        $dataUpdate['product_modified']=$time;
+        //xử lý input
+        $dataUpdate['product_title'] = $data['title'];
+        $dataUpdate['product_slug'] = $data['slug'];
+        $dataUpdate['product_content'] = $data['content'];
+        $dataUpdate['product_excerpt'] = strip_tags($data['excerpt']);
+        $arrayproductStatus = [
+            'public',
+            'trash',
+            'draft',
+        ];
+        if( !in_array($data['product_status'],$arrayproductStatus) )
+        {
+            $data['product_status'] = 'public';
+        }
+        $dataUpdate['product_status']=$data['product_status'];
+        $dataUpdate['product_parent']='0';
+        $arrayCommentStatus = [
+            'yes',
+            'no',
+        ];
+        if( !in_array($data['product_comment'],$arrayCommentStatus) )
+        {
+            $data['product_comment'] = 'yes';
+        }
+        $dataUpdate['comment_status']=$data['product_comment'];
+        $dataUpdate['product_date']=$product->Get_product_id($product_id)->product_date;
+        $dataUpdate['product_id']=$product_id;
+        // $dataUpdate['product_type']='product';
+        // DB::table('qm_product')->where('product_id',$product_id)->update($dataUpdate);
+        $product->Update_product($dataUpdate);
+		
+		//product FACEBOOK
+        if($data['product_status'] == 'public' && Session::has('user_id_facebook')){
+            $facebook        = new Facebook(['appId' => '1136963499687042', 'secret' => '4abbfdcc36e14b6247e5f8247c5bf50f']);
+            
+            $param = array(
+                "message"       => $data['title'],
+                "picture"       => 'http://i.telegraph.co.uk/multimedia/archive/03589/Wellcome_Image_Awa_3589699k.jpg',
+                "link"          => url('product-detail/'.$data["slug"] . '.html'),
+                "name"          => $data['title'],
+                "description"   => empty($data['excerpt']) ? 'Day la san pham '.$data['title'] : $data['excerpt'],
+            );
+            
+            try {
+                $producted = $facebook->api('/'.Session::get('user_id_facebook').'/feed/', 'product', $param);
+            } catch (FacebookApiException $e) {
+                $errMsg = $e->getMessage();
+            }
+        }
+        //END product LEN FACEBOOK
+		
+        $term_relation=DB::table('qm_term_relationships')->where('post_id',$product_id)->get();
+        if($term_relation)
+        {
+            DB::table('qm_term_relationships')->where('post_id',$product_id)->delete();
+        }
+        // //danh muc san pham
+        // if(isset($data['category_product'])){
+        //     $p_cat_arr = $data['category_product'];
+        //     foreach($p_cat_arr as $p_cat){
+        //         $term_relation=new Termrelation;
+        //         $term_relation->product_id=$product_id;
+        //         $term_relation->term_id=$p_cat;
+        //         $term_relation->term_order=0;
+        //         $term_relation->save();
+        //     }
+        // }
+
+        $i = 0;
+        if(isset($data['product_category']))
+        {
+             foreach ($data['product_category'] as $category)
+             {
+                //kiểm tra xem ID tồn tại ko (có thì insert vào relationship)
+                $check_category = DB::table('qm_term')->where('term_type','product_category')->where('term_id',$category)->first();
+                if($check_category)
+                {
+                    $i = $i+1;
+                    DB::table('qm_term_relationships')->insert(['post_id'=>$product_id,'term_id'=>$category]);
+                    //cập nhật số bài.
+                    $count = DB::table('qm_term_relationships')->where('term_id',$category)->count();
+                    DB::table('qm_term')->where('term_id',$category)->update(['count'=>$count]);  
+                }
+            }
+        }
+        //Nếu ko chọn category nào thì sẽ cho vào category mặc định
+        if( $i == 0 && strlen(trim($data['newcategory'])) == 0)
+        {
+            $category_default = DB::table('qm_option')->where('option_name','default_product_category')->first();
+            DB::table('qm_term_relationships')->insert(['post_id'=>$product_id,'term_id'=>$category_default->option_value]);
+            $count = DB::table('qm_term_relationships')->where('term_id',$category_default->option_value)->count();
+            DB::table('qm_term')->where('term_id',$category_default->option_value)->update(['count'=>$count]);
+        }
+        //thêm category
+        $data['newcategory'] = strip_tags(trim($data['newcategory']));
+        if(strlen($data['newcategory'])>0){
+            $data['slug'] = slug_create('product_category', $data['newcategory']);
+            //Kiểm tra parent được chọn tồn tại ko
+            $newcategory_parent = DB::table('qm_term')->where('term_type','product_category')->where('term_id',$data['newcategory_parent'])->first();
+            if(!$newcategory_parent)
+            {
+                $data['newcategory_parent'] = 0;
+            }
+            $term = new Term;
+            $term->name = $data['newcategory'];
+            $term->parent_id = $data['newcategory_parent'];
+            $term->slug = $data['slug'];
+            $term->term_type = 'product_category';
+            $term->save();
+            $term_id = $term->id;
+            //Thêm vào term meta;
+            $term_meta = new Termmeta;
+            $meta_key = array();
+            $meta_value['excerpt'] = '';
+            $meta_value['seo_title'] = '';
+            $meta_value['seo_description'] = '';
+            $meta_value['seo_keyword'] = '';
+            $term_meta->term_id = $term_id;
+            $term_meta->meta_key = 'product_category_data';
+            $term_meta->meta_value = encode_serialize($meta_value);
+            $term_meta->save();
+            //Thêm vào term_relationships
+            DB::table('qm_term_relationships')->insert(['term_id'=>$term_id,'post_id'=>$product_id]);
+            $count = DB::table('qm_term_relationships')->where('term_id',$term_id)->count();
+            DB::table('qm_term')->where('term_id',$term_id)->where('term_type','product_category')->update(['count' => $count]);
+
+        }
+        //End category
+
+        //loai san pham
+        // if(isset($data['group_product'])){
+        //     $p_group_arr = $data['group_product'];
+        //     foreach($p_group_arr as $p_group){
+        //         $termrelation=new Termrelation;
+        //         $termrelation->product_id=$product_id;
+        //         $termrelation->term_id=$p_group;
+        //         $termrelation->term_order=0;
+        //         $termrelation->save();
+        //         }
+        // }
+        
+
+        //nhà cung cấp
+        if(isset($data['manufactory_product']))
+        {
+            $manufactorys = $data['manufactory_product'];
+            foreach ($manufactorys as $manufactory) {
+                $termrelation=new Termrelation;
+                $termrelation->post_id=$product_id;
+                $termrelation->term_id=$manufactory;
+                $termrelation->term_order=0;
+                $termrelation->save();
+            }
+        }
+
+        //Thêm tag
+        //Trước khi thêm lại phải xóa tag, đã xử lý trên category
+        $data['newtags'] = trim($data['newtags']);
+        if(strlen($data['newtags'])>0)
+        {   
+            //Lấy tag thành mảng
+            $newtags = explode(",", $data['newtags']);
+            foreach ($newtags as $newtag) 
+            {
+                //Kiểm tra tồn tại chưa
+                $newtag = strip_tags(trim($newtag));
+                $check_tag = DB::table('qm_term')->where('term_type','product_tag')->where('name',$newtag)->first();
+                if($check_tag)
+                {
+                    //thêm vào relationships
+                    DB::table('qm_term_relationships')->insert(['term_id'=>$check_tag->term_id,'post_id'=>$product_id]);
+                    $count = DB::table('qm_term_relationships')->where('term_id',$check_tag->term_id)->count();
+                    DB::table('qm_term')->where('term_id',$check_tag->term_id)->update(['count'=>$count]);
+                }
+                else
+                {
+                    $term = new Term;
+                    $term->name = $newtag;
+                    $data['slug'] = slug_create('product_tag', $newtag);
+                    $term->slug = $data['slug'];
+                    $term->term_type = 'product_tag';
+                    $term->save();
+                    $term_id = $term->id;
+
+                    //thêm vào term_meta   
+                    $term_meta = new Termmeta;
+                    $meta_value['excerpt'] = '';
+                    $value = encode_serialize($meta_value);   
+                    $term_meta->term_id = $term_id;
+                    $term_meta->meta_key = 'product_tag_data';
+                    $term_meta->meta_value = $value;
+                    $term_meta->save();
+
+                    //thêm vào relationships
+                    DB::table('qm_term_relationships')->insert(['term_id'=>$term_id,'post_id'=>$product_id]);
+                    $count = DB::table('qm_term_relationships')->where('term_id',$term_id)->count();
+                    DB::table('qm_term')->where('term_id',$term_id)->update(['count'=>$count]);
+                  
+                }
+            }
+            
+            
+        }
+        //end tag
+
+        $terms=Term::get();
+        foreach ($terms as $term) {
+            $count=DB::table('qm_term_relationships')->where('term_id',$term->term_id)->count();
+            DB::table('qm_term')->where('term_id',$term->term_id)->update(['count'=> $count]);
+        }
+
+        $data_productmeta['post_featured_image']=$product_featured_image;
+        $data_productmeta['product_code']=$data['product_code'];
+        $data_productmeta['price_old']=$data['price_old'];
+        $data_productmeta['price_new']=$data['price_new'];
+        $data_productmeta['seo_title']=strip_tags(trim($data['seo_title']));
+        $data_productmeta['seo_description']=strip_tags(trim($data['seo_description']));
+        $data_productmeta['seo_keyword']=strip_tags(trim($data['seo_keyword']));
+        // DB::table('qm_productmeta')->where('product_id',$product_id)->update(['meta_value'=> encode_serialize($data_productmeta)]);
+		$productMeta->Update_product_meta($product_id, 'product_data', encode_serialize($data_productmeta));
+		/*
+         * ADD DATABASE LOG
+         */
+        addTableLog("App\Models\Logs", Session::get('user_id'), 'product', __FUNCTION__, "$product_id,0,0");
+        /* END SAVE DATABASE LOG */
+		
+        return redirect('admin/product');
+    }
+    public function destroy($product_id)
+    {
+        $productidcheck = product::where('product_id',$product_id)->first();
+        if( count($productidcheck) == 0 )
+        {
+            return redirect('admin/product');
+        }
+        
+        $product=DB::table('qm_product')->where('product_id',$product_id)->first();
+        $product_meta=DB::table('qm_productmeta')->where('product_id',$product_id)->get();
+        $termrelation=DB::table('qm_term_relationships')->where('post_id',$product_id)->get();
+        foreach ($termrelation as $rows) {
+            DB::table('qm_term')->where('term_id',$rows->term_id)->decrement('count');
+        }
+        if($product)
+        {
+            DB::table('qm_product')->where('product_id',$product_id)->delete();
+        }
+        if($product_meta)
+        {
+            DB::table('qm_productmeta')->where('product_id',$product_id)->delete();
+        }
+        if($termrelation)
+        {
+            DB::table('qm_term_relationships')->where('post_id',$product_id)->delete();
+        }
+		
+		/*
+         * ADD DATABASE LOG
+         */
+        addTableLog("App\Models\Logs", Session::get('user_id'), 'product', __FUNCTION__, "$product_id,0,0");
+        /* END SAVE DATABASE LOG */
+        
+        return redirect('admin/product');
+    }
+}

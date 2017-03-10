@@ -1,0 +1,71 @@
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_reg.otf?v=657);
+  font-weight: 400;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_reg_it.otf?v=657);
+  font-weight: 400;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_med.otf?v=657);
+  font-weight: 500;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_med_it.otf?v=657);
+  font-weight: 500;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_light.otf?v=657);
+  font-weight: 300;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_light_it.otf?v=657);
+  font-weight: 300;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_bld.otf?v=657);
+  font-weight: 600;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_bld_it.otf?v=657);
+  font-weight: 600;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_blk.otf?v=657);
+  font-weight: 700;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_blk_it.otf?v=657);
+  font-weight: 700;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_thin.otf?v=657);
+  font-weight: 200;
+  font-style: italic; }
+
+@font-face {
+  font-family: 'Brandon';
+  src: url(//hstatic.net/470/1000036470/1000066366/Brandon_thin_it.otf?v=657);
+  font-weight: 200;
+  font-style: italic; }

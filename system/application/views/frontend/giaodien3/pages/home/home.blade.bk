@@ -1,0 +1,66 @@
+@extends('frontend.giaodien3.layouts.default')
+@section('content')
+@include('frontend.giaodien3.includes.slider')
+<!-- ROW 1 -->
+ <div class="product-area">
+    <div class="container">
+        <div class="row">
+            <div class="box_left col-xs-12 col-sm-5">
+                <div class="menu_index_left side_collection">
+                    <!-- Widget 7 -->
+                    {!!showWidget('widget7')!!}
+                    <!-- End Widget 7 -->
+                </div>
+            </div>
+            <div class="box_right col-xs-12 col-sm-7">
+                <!-- Widget 1 -->
+                {!!showWidget('widget1')!!}
+                <!-- End Widget 1 -->
+                <div class="banner_tab_pr">
+                    <a href="{{ $firstBanner['url'] }}"><img src="{{ $firstBanner['image'] }}" /></a>
+                </div>
+                </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END ROW 1 -->
+<!-- ROW 2 -->
+ <div class="product-area">
+    <div class="container">
+        <div class="row">
+            <div class="box_left col-xs-12 col-sm-5">
+                <div class="menu_index_left menu_index2_left">
+                    <!-- Widget 8 -->
+                    {!!showWidget('widget8')!!}
+                    <!-- End Widget 8 -->
+                    <div class="banner_tab_left hidden-xs hidden-sm">
+                        <a href="{{ $secondBanner['url'] }}"><img src="{{ $secondBanner['image'] }}" /></a>
+                    </div>
+                </div>
+            </div>
+            <div class="box_right col-xs-12 col-sm-7">
+                <!-- Widget 2 -->
+                {!!showWidget('widget2')!!}
+                <!-- End Widget 2 -->
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END ROW 2 -->
+<!-- ROW 3 -->
+<div class="new-featured-product">
+    <div class="container">
+        <div class="row">
+            <div class="over_width">
+                <!-- Widget 4 -->
+                {!!showWidget('widget4')!!}
+                <!-- End Widget 4 -->
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END ROW 3 -->
+@stop

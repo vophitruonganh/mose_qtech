@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'proximanova';
+  src: url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.eot?v=324");
+  src: url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.eot?#iefix?v=324") format("embedded-opentype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.otf?v=324") format("opentype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.woff?v=324") format("woff"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.ttf?v=324") format("truetype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Regular.svg#ProximaNova-Regular?v=324") format("svg");
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'proximanovalight';
+  src: url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.eot?v=324");
+  src: url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.eot?#iefix?v=324") format("embedded-opentype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.otf?v=324") format("opentype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.woff?v=324") format("woff"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.ttf?v=324") format("truetype"), url("//hstatic.net/768/1000048768/1000071992/ProximaNova-Light.svg#ProximaNova-Light?v=324") format("svg");
+  font-weight: 300;
+  font-style: normal; }

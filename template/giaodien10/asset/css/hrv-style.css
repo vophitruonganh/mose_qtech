@@ -1,0 +1,21 @@
+
+.glyphicon{
+	margin-right:10px !important;
+}
+
+/*-------------------COntent------------------------*/
+
+body{ font-family:Helvetica Neue}
+.headerstrip{background: #dc2c6e}
+ul.categorymenu > li:hover > a, ul.categorymenu > li > a.active{background-color: #dc2c6e}
+
+.heading2,ul.bestseller li a.productname,.tab-content .blogtitle,.bloggridtitle,.author a,#latestblog .blogtitle,h1.productname{color: #dc2c6e}
+#popularbrands #next{ background-color: #dc2c6e}
+#popularbrands #prev{ background-color: #dc2c6e}
+.orange{color: #dc2c6e}
+.btn-orange{background-color: #dc2c6e}
+.btn-odernow{background-color: #dc2c6e!important}
+
+.label-orange, .badge-orange{ background-color: #dc2c6e}
+.thumbnail a.productcart{background-color: #dc2c6e}
+.btn-mgt{background-color: #dc2c6e!important}

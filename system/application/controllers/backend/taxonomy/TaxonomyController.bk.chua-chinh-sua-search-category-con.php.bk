@@ -1,0 +1,442 @@
+<?php
+
+namespace App\Http\Controllers\backend\taxonomy;
+
+use Illuminate\Http\Request;
+use App\Http\Requests;
+use App\Http\Controllers\backend\BackendController;
+
+/*
+ * Use Library of Laravel
+ */
+
+use App\Models\Term;
+use App\Models\Termmeta;
+use App\Libraries\Functions;
+use App\Models\Option;
+use Validator;
+use DB;
+use Session;
+
+class TaxonomyController extends BackendController
+{
+    public function index($data = array(),$data_arr = array(),$type_request = '')
+    {
+
+        $taxonomy_db = isset($data_arr['taxonomy_db']) ? $data_arr['taxonomy_db'] : '';
+
+        if(!$taxonomy_db)
+            return redirect('admin');
+        $section_title = isset($data_arr['section_title']) ? $data_arr['section_title'] : '';
+        $level = isset($data_arr['level']) ? $data_arr['level'] : '1';
+        $taxonomy_name = isset($data_arr['taxonomy_name']) ? $data_arr['taxonomy_name'] : '';
+        $taxonomy_url = isset($data_arr['taxonomy_url']) ? $data_arr['taxonomy_url'] : '';
+        $taxonomy_count_name = isset($data_arr['taxonomy_count_name']) ? $data_arr['taxonomy_count_name'] : '';
+        $page_number = isset($data_arr['page_number']) ? $data_arr['page_number'] : '1';
+
+        $sortBy = isset($data['sortBy']) ? $data['sortBy'] : '';
+        $check = isset($data['check']) ? $data['check'] : [];
+        $select_action = isset($data['select_action']) ? $data['select_action'] : '';
+        $type = isset($data['type']) ? $data['type'] : '';
+        $search = isset($data['search']) ? urldecode($data['search']) : '';
+        $search = urldecode($search);
+        if($type_request == 'ajax')
+        {
+            if($type == 'action'){        
+                $data_delete= array();
+                $data_delete['taxonomy_url'] = $taxonomy_url;
+                $data_delete['taxonomy_name'] = $taxonomy_name;
+                $data_delete['taxonomy_db'] = $taxonomy_db;
+                $data_delete['level'] = $level; 
+                $count = count($check);     
+                if( $select_action == 'edit' && $count){
+                    $output = Array('Response'=>'True','Redirect'=>url('admin/taxonomy/'.$taxonomy_url.'/edit/'.$check[0]),'Page'=>'','List'=>'');
+                    return $output;
+                }else if($select_action == 'trash' && $count){
+                    foreach( $check as $c )
+                    {
+                        $this->destroy($c,$data_delete,$type_request);
+                    }
+                }
+            }
+            $terms = $this->taxonomyActionSearch($taxonomy_db,$search);
+            $data_view = array();
+            $data_view['section_title'] = $section_title;
+            $data_view['taxonomy_name'] = $taxonomy_name;
+            $data_view['taxonomy_url'] = $taxonomy_url;
+            $data_view['taxonomy_db'] = $taxonomy_db;
+            $data_view['taxonomy_count_name'] = $taxonomy_count_name;
+            $data_view['select_action'] = $select_action;
+            $data_view['search'] = $search;
+            $data_view['page_number'] = $page_number;
+            return $this->taxonomyView($terms,$data_view);
+        }else {
+            if($select_action){
+                $data_delete= array();
+                $data_delete['taxonomy_url'] = $taxonomy_url;
+                $data_delete['taxonomy_name'] = $taxonomy_name;
+                $data_delete['taxonomy_db'] = $taxonomy_db;
+                $data_delete['level'] = $level; 
+                $count = count($check);
+                if( $select_action == 'edit' && $count)
+                {
+                    return redirect('admin/taxonomy/'.$taxonomy_url.'/edit/'.$check[0]);
+                }
+                if( $select_action == 'trash' && $count)
+                {
+                    foreach( $check as $v )
+                    {
+                        $this->destroy($v,$data_delete,$type_request);
+                    }
+                }
+                return redirect('admin/taxonomy/'.$taxonomy_url);
+            }
+            $termsPage = array();
+            if($search)
+            {
+                $termsPage['search'] = $search;
+            }
+            $terms = $this->taxonomyActionSearch($taxonomy_db,$search);
+            $datalist = array();
+            $datalist = taxonomy_data($terms,0,'',true);
+            $datalist = $this->paginate($datalist, 10,$page_number);
+            return view('backend.pages.taxonomy.list',[
+                'section_title' => $section_title,
+                'taxonomy_name' => $taxonomy_name,
+                'taxonomy_count_name' => $taxonomy_count_name,
+                'taxonomy_url' => $taxonomy_url,
+                'terms' => $datalist,
+                'pagination' => $termsPage,
+                'search' => $search,
+            ]);
+        }
+    }
+
+    public function taxonomyActionSearch($taxonomy='',$search='')
+    {
+        if($search){
+            $terms = Term::where('term_type',$taxonomy)->where('name','like','%'.$search.'%')->orderBy('term_id','DESC')->get();
+        }else {
+            $terms = Term::where('term_type',$taxonomy)->orderBy('term_id','DESC')->get();
+        }
+        return $terms;
+    }
+    public function taxonomyView($terms,$data_view = array())
+    {
+        $objdata = Array('Response'=>'False','Page'=>'','List'=>'');
+        $terms = $this->taxonomyActionSearch($data_view['taxonomy_db'],$data_view['search']);
+        $datalist = array();
+        $datalist = taxonomy_data($terms,0,'',true);
+        $datalist = $this->paginate($datalist, 10,$data_view['page_number']);
+        $listview = view('backend.pages.taxonomy.listView',[
+            'terms' => $datalist,
+            'taxonomy_url' => $data_view['taxonomy_url'],
+            'taxonomy_name' => $data_view['taxonomy_name'],
+            'taxonomy_count_name' => $data_view['taxonomy_count_name']
+        ]);
+        $objdata['Page'] = urlencode($datalist->render());
+        if($data_view['search']){
+            $objdata['Page'] = urlencode($datalist->appends(array('search' => $data_view['search']))->render());
+        }
+        $objdata['List'] = urlencode($listview);
+        if($objdata['List']){
+            $objdata['Response'] = 'True';
+        }
+        if($data_view['select_action'] == 'trash'){
+            $objdata['Message'] = 'Xóa '.$data_view['taxonomy_name'].' thành công!';
+        }
+        return $objdata;
+    }
+
+    public function create($data_arr=array())
+    {
+        $terms=Term::where('term_type',$data_arr['taxonomy_db'])->get();
+        return view('backend.pages.taxonomy.create',[
+            'terms'=>$terms,
+            'term_url'=>$data_arr['term_url'],
+            'taxonomy_url'=>$data_arr['taxonomy_url'],
+            'taxonomy_name'=>$data_arr['taxonomy_name'],
+            'level'=>$data_arr['level'],
+        ]);
+    }
+
+    public function store($data = array(),$data_arr = array(),$type_request='')
+    {
+        $validator = Validator::make($data,[
+            'name'=>'required',
+        ],[
+            'name.required'=>'Chưa nhập tên '.$data_arr['taxonomy_name'],
+        ]);
+        if( $validator->fails()){
+            $messages = $validator->errors();
+            if($type_request == 'ajax'){
+                return '{"Response":"False","Message":"'.$messages->first('name').'"}';
+            }else {
+                return redirect('admin/taxonomy/'.$taxonomy_url.'/create')->withErrors($validator)->withInput();
+            }
+        }
+
+        $term = new Term;
+        $data['name'] = strip_tags(trim(isset($data['name']) ? $data['name'] : ''));
+        //Nếu là tag kiểm tra ko cho trùng tên
+        if($data_arr['level'] ==0)
+        {
+            //kiểm tra tồn tại name
+            $check_name=DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('name',$data['name'])->first();
+            if($check_name){
+                $validator->getMessageBag()->add('name','Tên '.$data_arr['taxonomy_name'].' đã tồn tại');
+                $messages = $validator->errors();
+                //if($type == 'ajax'){
+                if($type_request == 'ajax'){
+                    return '{"Response":"False","Message":"'.$messages->first('name').'"}';
+                }else {
+                    return redirect('admin/taxonomy/'.$taxonomy_url.'/create')->withErrors($validator)->withInput();
+                }
+            }
+        }
+        
+        $_parent = 0;
+        //xem dữ liệu khách hàng nhập vào đúng ko (trường hợp category)
+        $data['parent'] = isset($data['parent']) ? $data['parent'] : '0';
+        $check_parent = DB::table('qm_term')->where('term_id',$data['parent'])->where('term_type',$data_arr['taxonomy_db'])->get();
+        if(!$check_parent){
+            $data['parent']='0';   
+        }
+        $_parent = $data['parent'];
+        
+
+        
+        $data['slug'] = trim(isset($data['slug']) ? $data['slug'] : '');
+        if($data['slug']=='')
+        {
+            $data['slug'] = $data['name'];
+        }
+        $data['slug']=slug_create($data_arr['taxonomy_db'],$data['slug']);
+
+        $term->name = $data['name'];
+        $term->slug = $data['slug'];
+        $term->parent_id = $_parent;
+        $term->term_type = $data_arr['taxonomy_db'];
+        $term->save();
+        $term_id = $term->id;
+        //thêm vào term meta
+        $term_meta = new Termmeta;
+        $meta_value = array();
+        $meta_value['excerpt'] = strip_tags(isset($data['excerpt']) ? $data['excerpt'] : '');
+        $meta_value['seo_title'] = strip_tags(isset($data['seo_title']) ? $data['seo_title'] : '');
+        $meta_value['seo_description'] = strip_tags(isset($data['seo_description']) ? $data['seo_description'] : '');
+        $meta_value['seo_keyword'] = strip_tags(isset($data['seo_keyword']) ? $data['seo_keyword'] : '');
+        $term_meta->term_id = $term_id;
+        $term_meta->meta_key = $data_arr['level'].'_data';
+        $term_meta->meta_value = encode_serialize($meta_value);
+        $term_meta->save();
+        /*ADD DATABASE LOG*/
+        //addTableLog("App\Models\Logs", Session::get('user_id'), 'post_category', __FUNCTION__, "0,0,0");
+        /* END SAVE DATABASE LOG */
+        if($type_request == 'ajax'){
+            return '{"Response":"True","TaxonomyId":"'.$term_id.'","TaxonomyName":"'.$data['name'].'","Redirect":"'.url('admin/taxonomy/'.$data_arr['taxonomy_url'].'/edit/'.$term_id).'","Message":"Thêm '.$data_arr['taxonomy_name'].' thành công"}';
+        }else {
+            return redirect('admin/taxonomy/'.$data_arr['taxonomy_url'].'/edit/'.$term_id);
+        }
+    }
+    public function edit($term_id = '',$data_arr=array())
+    {
+        $check = DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('term_id',$term_id)->get();
+        if(!$check){
+            return redirect('admin/taxonomy/'.$data_arr['taxonomy_url']);
+        }
+        $data = get_children_id($data_arr['taxonomy_db'],$term_id);
+        if(!$data){
+            $data=[];
+        }
+        $terms = Term::where('term_type',$data_arr['taxonomy_db'])->where('term_id','<>',$term_id)->whereNotIn('term_id',$data)->get();
+        $category_data = Termmeta::where('term_id',$term_id)->first();
+        $seo_data = array();
+        if($category_data){
+            $seo_data = decode_serialize($category_data->meta_value);
+        }
+        $term = Term::where('term_id',$term_id)->first();
+        return view('backend.pages.taxonomy.edit',[
+            'term'=>$term,
+            'terms'=>$terms,
+            'term_url'=>$data_arr['term_url'],
+            'taxonomy_url'=>$data_arr['taxonomy_url'],
+            'taxonomy_name'=>$data_arr['taxonomy_name'],
+            'level'=>$data_arr['level'],
+            'seo_data'=>$seo_data
+        ]);
+    }
+    public function update($term_id ='',$data= array(),$data_arr=array(),$type_request='')
+    {
+        $check=DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('term_id',$term_id)->get();
+        if(!$check){
+            if($type_request == 'ajax'){
+                return '{"Response":"False","Redirect":"'.url('admin/taxonomy/'.$data_arr['taxonomy_url']).'"}';
+            }else {
+                return redirect('admin/taxonomy/'.$data_arr['taxonomy_url']);
+            }
+        }
+        $validator = Validator::make($data,[
+            'name'=>'required',
+        ],[
+            'name.required'=>'Chưa nhập tên '.$data_arr['taxonomy_name'],
+        ]);
+        if( $validator->fails() )
+        {
+            $messages = $validator->errors();
+            if($type_request == 'ajax'){
+                return '{"Response":"False","Message":"'.$messages->first('name').'"}';
+            }else {
+                return redirect('admin/taxonomy/'.$data_arr['taxonomy_url'].'/edit/'.$term_id)->withErrors($validator)->withInput();
+            }
+        }
+
+        $_parent = 0;
+        $data['parent'] = isset($data['parent']) ? $data['parent'] : '0';
+        //Xử lý parent cho category
+        if($data_arr['level'] == 1){
+            $check_parent = DB::table('qm_term')->where('term_id','<>',$term_id)->where('term_id',$data['parent'])->where('term_type',$data_arr['taxonomy_db'])->get();
+            if(!$check_parent)
+            {
+                $data['parent'] = '0';   
+            }
+
+            $children_id = get_children_id($data_arr['taxonomy_db'],$term_id);
+            if($children_id)
+            {
+                if(in_array($data['parent'],$children_id))
+                {
+                    $data['parent'] = '0';
+                }
+            }
+            $_parent = $data['parent'];
+        }
+        $term=array();
+        $term['name'] = strip_tags(trim(isset($data['name']) ? $data['name'] : ''));
+
+        if($data_arr['level'] == 0)
+        {
+            //kiểm tra tồn tại name
+            $check_name=DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('term_id','<>',$term_id)->where('name',$term['name'])->first();
+            if($check_name)
+            {
+                $validator->getMessageBag()->add('name','Tên '.$data_arr['taxonomy_name'].' đã tồn tại');
+                $messages = $validator->errors();
+                if($type_request == 'ajax'){
+                    return '{"Response":"False","Message":"'.$messages->first('name').'"}';
+                }else {
+                    return redirect('admin/taxonomy/'.$data_arr['taxonomy_url'].'/edit'.$term_id)->withErrors($validator)->withInput();
+                }
+            }
+            //End
+        }
+        
+
+        $term['slug'] = strip_tags(trim(isset($data['slug']) ? $data['slug'] : ''));
+        if($term['slug']=='')
+        {
+            $term['slug'] = $term['name'];
+        }
+
+        $term['slug'] = slug_update($data_arr['taxonomy_db'],$term_id,$term['slug']);
+        
+        $term['parent_id'] = $_parent;
+        $term['term_type'] = $data_arr['taxonomy_db'];
+        DB::table('qm_term')->where('term_id',$term_id)->update($term);
+
+        //mta
+        $meta_value=array();
+
+        $meta_value['excerpt'] = strip_tags(isset($data['excerpt']) ? $data['excerpt'] : '');
+        $meta_value['seo_title'] = strip_tags(isset($data['seo_title']) ? $data['seo_title'] : '');
+        $meta_value['seo_description'] = strip_tags(isset($data['seo_description']) ? $data['seo_description'] : '');
+        $meta_value['seo_keyword'] = strip_tags(isset($data['seo_keyword']) ? $data['seo_keyword'] : '');
+        $meta_value = encode_serialize($meta_value);
+        DB::table('qm_termmeta')->where('term_id',$term_id)->update(['meta_value'=>$meta_value]);
+
+        /** ADD DATABASE LOG */
+         //addTableLog("App\Models\Logs", Session::get('user_id'), 'post_category', __FUNCTION__, "0,0,0");
+         /* END SAVE DATABASE LOG */
+
+        // if($type == 'ajax'){
+        //   return '{"Response":"True","Redirect":"'.url('admin/taxonomy/'.$taxonomy_url.'/edit/'.$term_id).'"}';
+        // }else {
+        //   return redirect('admin/taxonomy/'.$taxonomy_url.'/edit/'.$term_id);
+        // }
+        if($type_request == 'ajax'){
+            return '{"Response":"True","Message":"Cập nhật dữ liệu thành công."}';
+        }else {
+            return redirect('admin/taxonomy/'.$data_arr['taxonomy_url'].'/edit/'.$term_id);
+        }
+    }
+    public function destroy($term_id = '',$data_arr = array(),$type_request='')
+    {
+        if($data_arr['level'] == 1){
+            $term=DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('term_id',$term_id)->first();
+            if(!$term){
+                if($type_request == 'ajax'){
+                    return '{"Response":"False","Message":"Xóa '.$data_arr['taxonomy_name'].' thất bại"}';
+                }else {
+                    return redirect('admin/taxonomy/'.$data_arr['taxonomy_url']);
+                }
+            }
+            $data=DB::table('qm_option')->where('option_name','default_'.$data_arr['taxonomy_db'])->first();
+            if($data){
+                if($term_id==$data->option_value){
+                    if($type_request == 'ajax'){
+                        return '{"Response":"False","Message":"Xóa '.$data_arr['taxonomy_name'].' thất bại"}';
+                    }else {
+                        return redirect('admin/taxonomy/'.$data_arr['taxonomy_url']);
+                    }
+                }else{
+                 //xóa
+                    $this->delete($term_id,$data_arr['taxonomy_db'],$term->parent_id,$data->option_value);
+                }
+            }
+        }else if($data_arr['level'] ==0){
+            DB::table('qm_termmeta')->where('term_id',$term_id)->delete();
+            DB::table('qm_term_relationships')->where('term_id',$term_id)->delete();
+            DB::table('qm_term')->where('term_type',$data_arr['taxonomy_db'])->where('term_id',$term_id)->delete();
+        }
+        if($type_request == 'ajax'){
+            return '{"Response":"True","Message":"Xóa '.$data_arr['taxonomy_name'].' thành công"}';
+        }else {
+            return redirect('admin/taxonomy/'.$data_arr['taxonomy_url']);
+        }
+    }
+    private function delete($term_id,$taxonomy_db = '',$parent_id,$default_category)
+    {
+        //Lấy id các bài post(post,product) của category bị xóa
+        $posts = DB::table('qm_term_relationships')->where('term_id',$term_id)->get();
+        if(count($posts)>0){
+            foreach($posts as $post){
+                //đếm bài post thuộc category bị xóa có thuộc category khác ko
+                $count=DB::table('qm_term_relationships')->join('qm_term','qm_term.term_id','=','qm_term_relationships.term_id')->where('qm_term_relationships.post_id',$post->post_id)->where( function($query){
+                        $query->where('qm_term.term_type','post_category')->orwhere('qm_term.term_type','product_category');
+                })->count();
+                //Nếu nó thuộc 1 category thì cập nhật
+                if($count==1){
+                    //$this->update_category_delete('post_category',$term_id,$post->post_id,$default_category);
+                    DB::table('qm_term_relationships')->where('term_id',$term_id)->where('post_id',$post->post_id)->update(['term_id'=>$default_category]);
+                }
+                //else Nếu nhiều hơn thì xóa bình thường
+            }
+            //cập nhật lại số bài post của category default
+            $count=DB::table('qm_term_relationships')->where('term_id',$default_category)->count();
+            DB::table('qm_term')->where('term_id',$default_category)->update(['count'=>$count]);
+        }
+      
+        $data=DB::table('qm_term')->where('term_type',$taxonomy_db)->where('parent_id',$term_id)->get();
+        if($data){
+            //Nếu có cha thì cập nhật cha của category con thành category của cha
+            DB::table('qm_term')->where('parent_id',$term_id)->where('term_type',$taxonomy_db)->update(['parent_id'=>$parent_id]);
+            DB::table('qm_term')->where('term_type',$taxonomy_db)->where('term_id',$term_id)->delete();
+        }else{
+            DB::table('qm_term')->where('term_type',$taxonomy_db)->where('term_id',$term_id)->delete();
+        }
+        DB::table('qm_termmeta')->where('term_id',$term_id)->delete();
+        DB::table('qm_term_relationships')->where('term_id',$term_id)->delete();
+        return 1;
+    }
+}
+?>

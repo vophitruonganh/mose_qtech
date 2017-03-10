@@ -1,0 +1,23 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews
+    </IfModule>
+
+    RewriteEngine On
+	RewriteRule ^bundles/main.js?(.*)$ system/bundles/load-scripts.php?t=main&$1 [QSA,L]
+	RewriteRule ^bundles/common.js?(.*)$ system/bundles/load-scripts.php?t=common&$1 [QSA,L]
+	RewriteRule ^bundles/module.js?(.*)$ system/bundles/load-scripts.php?t=module&$1 [QSA,L]
+	RewriteRule ^bundles/styles.css?(.*)$ system/bundles/load-styles.php?$1 [QSA,L]
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+    # Handle Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+	
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>

@@ -1,0 +1,364 @@
+<?php
+
+namespace App\Http\Controllers\backend\store;
+
+use Illuminate\Http\Request;
+
+use App\Http\Requests;
+use App\Http\Controllers\backend\BackendController;
+
+/*
+ * Use Library of Laravel
+ */
+use App\Models\Discount;
+use App\Models\Taxonomy;
+use App\Models\Product;
+use DB;
+
+class DiscountController extends BackendController
+{
+	public function index(Request $request)
+	{
+		$taxonomyObject = new Taxonomy;
+		$productObject = new Product;
+		$time = time();
+		$page = $request->input('page',1);
+		$actionStatus = $request->input('action_status','all');
+		$search = $request->input('search');
+		$discountCount = [];
+		$discountCount['all'] = $this->discountCount('all');
+		$discountCount['activated'] = $this->discountCount('activated');
+		$discountCount['not_activated'] = $this->discountCount('not_activated');
+		$discountCount['expired'] = $this->discountCount('expired');
+		$AllowActionStatus = [
+			'all',
+			'activated',
+			'not_activated',
+			'expired',
+		];
+		if( !in_array($actionStatus,$AllowActionStatus) )
+		{
+			return redirect('admin/discount');
+		}
+
+		$getAllDiscount = [];
+		switch( $actionStatus )
+		{
+			case 'all':
+				$getAllDiscount = Discount::orderBy('discount_id','desc')->get();
+				break;
+			case 'activated':
+				$getAllDiscount = Discount::where(function($query) use ($time){
+						$query->where('discount_date_end','>',0)
+						->where('discount_date_start','<=',$time)
+						->where('discount_date_end','>=',$time);
+					})->orWhere(function($query) use ($time){
+						$query->where('discount_date_end','<=',0)
+						->where('discount_date_start','<=',$time);
+					})->get();
+				break;
+			case 'not_activated':
+				$getAllDiscount = Discount::where(function($query) use ($time){
+						$query->where('discount_date_end','>',0)
+						->where('discount_date_start','>',$time);
+					})->orWhere(function($query) use ($time){
+						$query->where('discount_date_end','<=',0)
+						->where('discount_date_start','>',$time);
+					})->get();
+				break;
+			case 'expired':
+				$getAllDiscount = Discount::where('discount_date_end','>',0)
+					->where('discount_date_end','<',$time)->get();
+			default:
+		}
+		
+		$discounts = [];
+		foreach( $getAllDiscount as $discount )
+		{
+			// String Discount Code && String Discount Allow Promotion && Discount Limit Time Used && String Discount Limit
+			$strDiscountCode = '';
+			$strDiscountAllowPromotion = '';
+			$discountLimitTimeUsed = '&#8734;';
+			$strDiscountLimit = '<strong>Không giới hạn số lần sử dụng</strong>';
+			switch( $discount->discount_type )
+			{
+				case 1:
+					$strDiscountCode = 'Mã khuyến mãi:';
+					$strDiscountAllowPromotion .= '(Mã khuyến mãi ';
+					switch( $discount->promotion_allow )
+					{
+						case 0:
+							$strDiscountAllowPromotion .= 'không thể ';
+							break;
+						case 1:
+						default:
+							$strDiscountAllowPromotion .= 'có thể ';
+					}
+					$strDiscountAllowPromotion .= 'sử dụng chung với chương trình khuyến mãi)';
+					$discountLimitTimeUsed = $discount->discount_limit_end;
+
+					if( $discount->discount_limit_start > 0 )
+					{
+						$strDiscountLimit = 'Số lần sử dụng khuyến mãi: <strong>'.$discount->discount_limit_end.'/'.$discount->discount_limit_start.'</strong>';
+					}
+					break;
+				case 2:
+				default:
+					$strDiscountCode = 'Chương trình khuyến mãi:';
+			}
+			$discounts[$discount->discount_id]['first_code'] = $strDiscountCode;
+			$discounts[$discount->discount_id]['last_code'] = $discount->discount_title;
+			$discounts[$discount->discount_id]['allow_promotion'] = $strDiscountAllowPromotion;
+			$discounts[$discount->discount_id]['discount_limit_time_used'] = $discountLimitTimeUsed;
+			$discounts[$discount->discount_id]['discount_limit'] = $strDiscountLimit;
+			// End
+
+			// String Discount Description
+			$discountOption = 'VNĐ';
+			if( $discount->discount_option == 'percentage' ) $discountOption = '%';
+			
+			$strDiscountDescription = 'Giảm <strong>'.number_format($discount->discount_take,0,',','.').$discountOption.'</strong> cho ';
+
+			switch( $discount->discount_offer )
+			{
+				case 1:
+					$strDiscountDescription .= 'tất cả đơn hàng';
+					break;
+				case 2:
+					$strDiscountDescription .= 'đơn hàng có giá trị từ <strong>';
+					$strDiscountDescription .= number_format($discount->money_over,0,',','.').'VNĐ</strong>';
+					break;
+				case 3:
+					$strDiscountDescription .= 'nhóm sản phẩm ';
+					$groupProduct = $taxonomyObject->Get_taxonomy_id('product_group',$discount->relationship_id);
+					if( $groupProduct )
+					{
+						$strDiscountDescription .= '<a href="'.url('admin/taxonomy/product-group/edit/'.$groupProduct->taxonomy_id).'" target="_blank">'.$groupProduct->taxonomy_name.'</a>';
+					}
+					else
+					{
+						$strDiscountDescription .= $discount->relationship_title;
+					}
+
+					if( $discount->discount_type == 1 )
+					{
+						if( $discount->offer_option == 1 )
+						{
+							$strDiscountDescription .= ' (trên cả đơn hàng)';
+						}
+						else // $discount->offer_option == 2
+						{
+							$strDiscountDescription .= ' (từng sản phẩm trong đơn hàng)';
+						}
+					}
+					else // $discount->discount_type == 2
+					{
+						$strDiscountDescription .= ' (khi mua '.$discount->offer_option.' sản phẩm trở lên)';
+					}
+
+					break;
+				case 4:
+					$strDiscountDescription .= 'sản phẩm ';
+					$product = $productObject->Get_product_id($discount->relationship_id);
+					if( $product )
+					{
+						$strDiscountDescription .= '<a href="'.url('admin/product/edit/'.$product->product_id).'" target="_blank">'.$product->product_title.'</a>';
+					}
+					else
+					{
+						$strDiscountDescription .= $discount->relationship_title;
+					}
+
+					if( $discount->discount_type == 1 )
+					{
+						if( $discount->offer_option == 1 )
+						{
+							$strDiscountDescription .= ' (trên cả đơn hàng)';
+						}
+						else // $discount->offer_option == 2
+						{
+							$strDiscountDescription .= ' (từng sản phẩm trong đơn hàng)';
+						}
+					}
+					else // $discount->discount_type == 2
+					{
+						$strDiscountDescription .= ' (khi mua '.$discount->offer_option.' sản phẩm trở lên)';
+					}
+
+					break;
+				case 5:
+				default:
+					$strDiscountDescription .= 'khách hàng trong nhóm ';
+					$groupCustomer = $taxonomyObject->Get_taxonomy_id('customer_group',$discount->relationship_id);
+					if( $groupCustomer )
+					{
+						$strDiscountDescription .= '<a href="'.url('admin/taxonomy/customer-group/edit/'.$groupCustomer->taxonomy_id).'" target="_blank">'.$groupCustomer->taxonomy_name.'</a>';
+					}
+					else
+					{
+						$strDiscountDescription .= $discount->relationship_title;
+					}
+
+					if( $discount->discount_type == 1 )
+					{
+						if( $discount->offer_option == 1 )
+						{
+							$strDiscountDescription .= ' (trên cả đơn hàng)';
+						}
+						else // $discount->offer_option == 2
+						{
+							$strDiscountDescription .= ' (từng sản phẩm trong đơn hàng)';
+						}
+					}
+					else // $discount->discount_type == 2
+					{
+						$strDiscountDescription .= ' (khi mua '.$discount->offer_option.' sản phẩm trở lên)';
+					}
+
+			}
+			$discounts[$discount->discount_id]['description'] = $strDiscountDescription;
+			// End
+
+			// Discount Date Start && Discount Date End && Discount Status
+			$discounts[$discount->discount_id]['date_start'] = date('h:i d-m-Y',$discount->discount_date_start);
+
+			$discounts[$discount->discount_id]['date_end'] = '—';
+			if( $discount->discount_date_end > 0 )
+			{
+				$discounts[$discount->discount_id]['date_end'] = date('h:i d-m-Y',$discount->discount_date_end);
+			}
+
+			if( $discount->discount_date_end > 0 )
+			{
+				if( $discount->discount_date_start <= $time && $discount->discount_date_end >= $time )
+				{
+					$discounts[$discount->discount_id]['status'] = 'đã kích hoạt';
+				}
+				elseif( $discount->discount_date_start > $time )
+				{
+					$discounts[$discount->discount_id]['status'] = 'chưa kích hoạt';
+				}
+				elseif( $discount->discount_date_end < $time )
+				{
+					$discounts[$discount->discount_id]['status'] = 'đã hết hạn';
+				}
+			}
+			else // $discount->discount_date_end <= 0
+			{
+				if( $discount->discount_date_start <= $time )
+				{
+					$discounts[$discount->discount_id]['status'] = 'đã kích hoạt';
+				}
+				elseif( $discount->discount_date_start > $time )
+				{
+					$discounts[$discount->discount_id]['status'] = 'chưa kích hoạt';
+				}
+			}
+
+			
+			// End
+		}
+
+		$discounts = $this->paginate($discounts,6,$page);
+
+		return view('backend.pages.store.discount.listDiscount',[
+			'discounts' => $discounts,
+			'discountCount' => $discountCount,
+			'actionStatus' => $actionStatus,
+			'search' => $search,
+		]);
+	}
+
+	public function create()
+	{
+		return view('backend.pages.store.discount.createDiscount');
+	}
+
+	public function store()
+	{
+		return 1;
+	}
+
+	public function generateCodeDiscount()
+    { 
+    	return strtoupper(str_random(12));
+    }
+
+	private function discountCount($status)
+	{
+		$time = time();
+		$count = 0;
+		switch($status)
+		{
+			case 'activated':
+				$count = Discount::where(function($query) use ($time){
+						$query->where('discount_date_end','>',0)
+						->where('discount_date_start','<=',$time)
+						->where('discount_date_end','>=',$time);
+					})->orWhere(function($query) use ($time){
+						$query->where('discount_date_end','<=',0)
+						->where('discount_date_start','<=',$time);
+					})->count();
+				break;
+			case 'not_activated':
+				$count = Discount::where(function($query) use ($time){
+						$query->where('discount_date_end','>',0)
+						->where('discount_date_start','>',$time);
+					})->orWhere(function($query) use ($time){
+						$query->where('discount_date_end','<=',0)
+						->where('discount_date_start','>',$time);
+					})->count();
+				break;
+			case 'expired':
+				$count = Discount::where('discount_date_end','>',0)
+					->where('discount_date_end','<',$time)->count();
+				break;
+			case 'all':
+			default:
+				$count = Discount::count();
+		}
+
+		return $count;
+	}
+
+	public function GetOfferList(){
+        $product = new Product;
+        $taxonomy = new Taxonomy;
+        $arr=array();
+        $type = isset($_REQUEST['offer_type']) ? $_REQUEST['offer_type'] : '';
+        $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+        if($type!=''){
+            if($type=='product'){
+                $data = $product->Search_product_title($search,5);
+                $arrDatalist=array();
+                $a = '';
+                foreach ($data as $v) {
+                    //array_push($arrDatalist, json_encode(["ID" => $v->product_id,"Title" => $v->product_title]));
+                    $arrDatalist[] = array("id" => $v->product_id,"text" => $v->product_title);
+                    $a = $v->product_title;
+                }
+                // $list = [
+                //     ["DiscountOffer"=>"product","DataList"=>$arrDatalist]
+                // ];
+           
+                return json_encode($arrDatalist,JSON_UNESCAPED_UNICODE);
+            }
+            if($type=='product_group' || $type=='customer_group'){
+                $data=$taxonomy->Search_taxonomy_title_limit($type,$search,5);
+                $arrDatalist=array();
+                foreach ($data as $v) {
+                    // array_push($arrDatalist, json_encode(["ID" => $v->term_id,"Title" => $v->name]));
+                    $arrDatalist[] = array("id" => $v->taxonomy_id,"text" => $v->taxonomy_name);
+                }
+                // $list = [
+                //     ["DiscountOffer"=>"product_group","DataList"=>$arrDatalist]
+                // ];
+           
+                return json_encode($arrDatalist,JSON_UNESCAPED_UNICODE);
+            }
+
+        }
+        
+        
+    }
+}

@@ -1,0 +1,1660 @@
+<?php
+require_once(__DIR__.'/backend/config.php');
+require_once(__DIR__.'/backend/general.php');
+require_once(__DIR__.'/backend/taxonomy.php');
+require_once(__DIR__.'/frontend/post.php');
+require_once(__DIR__.'/frontend/product.php');
+require_once(__DIR__.'/backend/product.php');
+require_once(__DIR__.'/backend/attachment.php');
+
+
+if( !function_exists('navigation_load') )
+{   
+    function navigation_load($menu_data = array()){
+        $html = '';
+        if(count($menu_data)){
+            foreach ($menu_data as $val)
+            {   $rd = mt_rand(1,99999999);
+                $url = '';
+                $sub_menu = ( isset($val['sub_menu']) ) ? $val['sub_menu'] : '';
+                if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i",$val['url'])) {
+
+                }else {
+                    $url = '<div class="form-group"><label class="sr-only">Đường dẫn</label><input type="text" placeholder="http://" class="form-control" data-type="url" value="'.$val['url'].'" /></div>';
+                }
+                $html .= '<li id="menu-item-'.$rd.'" data-url="'.$val['url'].'" data-title="'.$val['title'].'" class="menu-item-edit-inactive"><div class="menu-item-bar"><div class="menu-item-handle"><span class="item-title"><span data-id="'.$rd.'" class="menu-item-title">'.$val['title'].'</span></span><span class="item-controls"><span data-id="'.$rd.'" class="item-edit font-icon icon-arrow-up"></span></span><div id="menu-item-settings-'.$rd.'" class="menu-item-settings" style="display: none;"><div class="form-group"><label class="sr-only">Tên đường dẫn</label><input type="text" placeholder="Tên đường dẫn" class="form-control" data-type="title" value="'.$val['title'].'" /></div>'.$url.'<div class="settings-action"><span class="item-delete" data-id="'.$rd.'"><span class="dashicons dashicons-trash"></span>Xóa mục</span></div></div></div></div>';
+                if($sub_menu){
+                    $html .= '<ol>';
+                    $html .= navigation_load($sub_menu);
+                    $html .= '</ol>';
+                }
+                $html .= '</li>';
+            }
+        }
+        return $html;
+    }
+}
+
+
+/*-- Add Product Category --*/
+// if( !function_exists('taxonomy_list') )
+// {    
+//     function taxonomy_list($data,$parent_id=0,$str="",$select=0)
+//     {
+//         foreach ($data as $val)
+//         {
+//             $id = $val["taxonomy_id"];
+//             $name = $val["taxonomy_name"];
+//             if ($val["parent_id"] == $parent_id)
+//             {
+//                 if ($select != 0 && $id == $select)
+//                 {
+//                     echo '<option value="'.$id.'" selected>'.$str." ".$name.'</option>';
+//                 }
+//                 else
+//                 {
+//                     echo '<option value="'.$id.'">'.$str." ".$name.'</option>';
+//                 }
+//                 menuMulti($data,$id,$str."-- ",$select);
+//             }
+//         }
+//     }
+// }
+/*-- End Add Product Category --*/
+
+/*-- Add Product Category --*/
+// if( !function_exists('menuMulti') )
+// {    
+//     function menuMulti($data,$parent_id=0,$str="",$select=0)
+//     {
+//     	foreach ($data as $val)
+//         {
+//     		$id = $val["term_id"];
+//     		$name = $val["name"];
+//     		if ($val["parent_id"] == $parent_id)
+//             {
+//     			if ($select != 0 && $id == $select)
+//                 {
+//     				echo '<option value="'.$id.'" selected>'.$str." ".$name.'</option>';
+//     			}
+//                 else
+//                 {
+//     				echo '<option value="'.$id.'">'.$str." ".$name.'</option>';
+//     			}
+//     			menuMulti($data,$id,$str."-- ",$select);
+//     		}
+//     	}
+//     }
+// }
+/*-- End Add Product Category --*/
+
+/*-- Taxonomy Data --*/
+// if( !function_exists('taxonomy_data') )
+// {
+//     function taxonomy_data($data,$parent = 0,$str="",$level = false){
+//         $arr_data = array();
+//         $data_list = array();
+//         $arr = array();
+
+//         foreach ($data as $val)
+//         {
+//             $id = $val["taxonomy_id"];
+//             $name = $val["taxonomy_name"];
+//             $slug = $val["taxonomy_slug"];
+//             $count = $val["taxonomy_count"];
+//             if ($val["taxonomy_parent"] == $parent)
+//             {
+//                 if($str){
+//                     $name = $str.$name;
+//                 }
+//                 $arr = array(
+//                     'taxonomy_id' => $id,
+//                     'taxonomy_name' => $name,
+//                     'taxonomy_slug' => $slug,
+//                     'taxonomy_count' => $count,
+//                     'taxonomy_parent' => $val["parent_id"],
+//                 );
+//                 array_push($arr_data,$arr);
+//                 if($level){
+//                     $data_list = taxonomy_data($data,$id,$str."--- ",$level);
+//                     if($data_list){
+//                         $arr_data = array_merge($arr_data,$data_list);
+//                     }
+//                 }
+//             }
+//         }
+//         return $arr_data;
+//     }
+// }
+/*-- End Taxonomy Data --*/
+
+/*-- Taxonomy Data 2 --*/
+// if( !function_exists('taxonomy_data_2') )
+// {
+//     function taxonomy_data_2($data){
+//         $arr_data = array();
+
+//         foreach ($data as $val)
+//         {
+//             $id = $val["term_id"];
+//             $name = $val["name"];
+//             $slug = $val["slug"];
+//             $count = $val["count"];
+//             $parent_id = $val["parent_id"];
+
+//             $arr = array(
+//                 'term_id' => $id,
+//                 'name' => $name,
+//                 'slug' => $slug,
+//                 'count' => $count,
+//                 'parent_id' => $val["parent_id"],
+//             );
+//             array_push($arr_data,$arr);
+//         }
+//         return $arr_data;
+//     }
+// }
+/*-- End Taxonomy Data 2 --*/
+
+/*-- Check Array Value --*/
+if( !function_exists('arr_item') )
+{
+    function arr_item( &$var){
+        if(isset($var))
+            return $var;
+        return '';
+    }
+}
+/*-- End Check Array Value --*/
+
+/*-- Edit Product Category --*/
+/*
+if( !function_exists('listCate') )
+{
+    function listCate ($data,$parent = 0,$str="",$term_type = "product-category")
+    {
+        $objdata = array();
+        $datalist = array();
+        $arr = array();
+        foreach ($data as $val)
+        {
+            $id = $val["term_id"];
+            $name = $val["name"];
+            $slug = $val["slug"];
+            $count = $val["count"];
+            if ($val["parent_id"] == $parent)
+            {
+                // echo '<tr>';
+                // echo '<th class="table-check"><input type="checkbox" class="pcb" name="check[]" id="check[]" value="'.$id.'" /></th>';
+                if($str){
+                    $name = $str.$name;
+                }
+                // echo '<td class="table-title"><a href="'.url('admin/'.$term_type.'/edit/'.$id).'">'.$name.'</a></td>';
+                // echo '<td>'.$slug.'</td>';
+                // echo '<td><a href="">'.$count.'</a></td>';
+                // echo '</tr>';
+                $arr = array(
+                    'term_id' => $id,
+                    'name' => $name,
+                    'slug' => $slug,
+                    'count' => $count,
+                    'parent_id' => $val["parent_id"]
+                );
+                array_push($objdata,$arr);
+                $datalist = listCate($data,$id,$str."--- ",$term_type);
+                if($datalist){
+                    $objdata = array_merge($objdata,$datalist);
+                }
+            }
+        }
+        return $objdata;
+    }
+}
+*/
+
+/*-- End Edit Product Category --*/
+
+if( !function_exists('respones_redirect') )
+{
+    function respones_redirect($type= '', $url='',$message = ''){
+        if($type == 'ajax' && $message){
+            return $message;
+        }else if($url){
+            return redirect($url);
+        }
+    }
+}
+/*-- End Pagination --*/
+
+/*-- End Edit Product Category --*/
+
+
+
+/*-- Create Slug --*/
+// if(!function_exists('slug_create'))
+//  {
+//     function slug_create($term_type, $slug)
+//     {
+//        $_slug = str_slug($slug);
+//        $_slugUndercore = $_slug.'-';
+//        $check = DB::table('qm_taxonomy')->where('taxonomy_type',$term_type)->where('taxonomy_slug',$_slug)->get();
+//        $i=1;
+//        while(count($check) > 0)
+//        {
+//            $_slug = $_slugUndercore.$i;
+//            $check = DB::table('qm_taxonomy')->where('taxonomy_slug',$_slug)->where('taxonomy_type',$term_type)->get();
+//            $i++;
+//        }
+//        return $_slug;
+
+//     }
+// }
+/*-- End Create Slug --*/
+
+/*-- Update Slug --*/
+// if(!function_exists('slug_update'))
+//  {
+//     function slug_update($term_type,$ID,$slug)
+//     {
+//         $_slug = str_slug($slug);
+//         $_slugUndercore = $_slug.'-';
+//         $check = DB::table('qm_taxonomy')->where('taxonomy_slug',$_slug)->where('taxonomy_type',$term_type)->where('taxonomy_id','<>',$ID)->get();
+//         $i=1;
+//         while(count($check) > 0){
+//            $_slug=$_slugUndercore.$i;
+//            $check=DB::table('qm_taxonomy')->where('taxonomy_slug',$_slug)->where('taxonomy_type',$term_type)->where('taxonomy_id','<>',$ID)->get();
+//            $i++;
+//         }
+//         return $_slug;
+//     }
+// }
+/*-- End Update Slug --*/
+
+/*-- Get Children Id --*/
+// if( !function_exists('get_children_id') )
+// {    
+//     function get_children_id($term_type,$term_id)
+//      {
+//          $terms=DB::table('qm_taxonomy')->where('taxonomy_type',$term_type)->where('taxonomy_parent',$term_id)->get();
+        
+//          if($terms)
+//          {
+//             $data=array();
+//             $array=array();
+//             foreach ($terms as $term)
+//             {
+//                 $data[].=$term->taxonomy_id;
+//                 $array = get_children_id($term_type,$term->taxonomy_id);  
+//                 if($array)
+//                 {
+//                     $data = array_merge($array,$data);
+//                 }
+//                 else
+//                 {
+//                     $data = $data;
+//                 } 
+//             }
+//             return $data;
+//          }
+//     }
+// }
+/*-- End Get Children Id --*/
+
+
+
+/*-- List Files --*/
+if( !function_exists('list_files') )
+{ 
+    function list_files( $folder = '', $levels = 100 ) {
+    	if ( empty($folder) )
+    		return false;
+    
+    	if ( ! $levels )
+    		return false;
+    
+    	$files = array();
+    	if ( $dir = @opendir( $folder ) ) {
+    	        while (($file = readdir( $dir ) ) !== false ) {
+    	            if ( in_array($file, array('.', '..') ) )	                                
+    	            	continue;
+    	            if ( is_dir( $folder . '/' . $file ) ) {
+    	                        $files2 = list_files( $folder . '/' . $file, $levels - 1);
+    	                        if ( $files2 )
+    	                                $files = array_merge($files, $files2 );
+    	                    else
+    	                           $files[] = $folder . '/' . $file . '/';
+    	                } else {
+    	                        $files[] = $folder . '/' . $file;
+    	                }
+    	        }
+    	}
+    	@closedir($dir);
+    	return $files;
+    }
+}
+/*-- End List Files --*/
+
+/*-- Get Info --*/
+if( !function_exists('get_info') )
+{ 
+    function get_info($path='',$tagName,$file='function.php')
+    {
+		$content = htmlentities(file_get_contents($path.$file));
+        
+		if(strpos($content, $tagName.':') !== false)
+        {
+			$content = explode($tagName.':',$content);
+			$content = explode(PHP_EOL, $content[1]);
+			$content = explode('*', $content[0]);
+			$content = trim($content[0]);
+            return $content;
+		}
+    }
+}
+/*-- End Get Info --*/
+
+/*-- addTableLog --*/
+if( !function_exists('addTableLog') )
+{
+    function addTableLog($model,$userID,$logType,$logAction,$dataID)
+    {
+        if($logAction == 'store'){
+            $action = 'new';
+            $status = 'publish';
+        }
+        else if($logAction == 'update'){
+            $action = 'update';
+            $status = 'publish';
+        }else if($logAction == 'destroy'){
+            $action = 'delete';
+            $status = 'trash';
+        }else{
+            $action = 'login';
+            $status = 'publish';
+        }
+        
+        $arrDataID = explode(',',$dataID);
+        
+        $log = new $model();
+        $log->user_id           = $userID;
+        $log->post_id           = $arrDataID[0];
+        $log->attachment_id     = $arrDataID[1];
+        $log->order_code        = $arrDataID[2];
+        $log->log_date          = time();
+        $log->log_content       = null;
+        $log->log_description   = null;
+        $log->log_type          = 'log_'.$logType;
+        $log->log_action        = $action;
+        $log->log_status        = $status; 
+        $log->save();
+    }
+}
+/*-- End addTableLog --*/
+
+/*-- Show Widget --*/
+if( !function_exists('showWidget') )
+{
+    function showWidget($widgetName)
+    {
+        /*-- Sidebars Widget --*/
+        $sidebarsWidget = decode_serialize(DB::table('qm_option')->where('option_name', 'sidebars_widget')->first()->option_value);
+        /*-- End Sidebars Widget --*/
+        $active_template = DB::table('qm_option')->where('option_name', 'active_template')->first()->option_value;
+        
+        $return = '';
+        require_once('system/application/views/frontend/'.$active_template.'/function.php');
+        $resgisterWidget = resgisterWidget();
+        $widgets = [];
+        foreach( $resgisterWidget as $widget )
+        {
+            $widgets[] = $widget['name'];
+        }
+        //echo $widgetName;
+        if( isset($sidebarsWidget[$widgetName]) && count($sidebarsWidget[$widgetName]) > 0 && in_array($widgetName,$widgets) )
+        {
+            foreach( $sidebarsWidget[$widgetName] as $order => $plugin )
+            {
+                $data = [];
+                $pluginOption = DB::table('qm_option')->where('option_name','widget_'.$plugin)->first();
+
+                if( $pluginOption != null )
+                {
+                    $optionValue = decode_serialize(DB::table('qm_option')->where('option_name','widget_'.$plugin)->first()->option_value);
+
+                    if( isset($optionValue[$widgetName][$order]) )
+                    {
+                        $data = $optionValue[$widgetName][$order];
+                    }
+                    
+                }
+
+                // require_once('system/plugins/'.$plugin.'/'.$plugin.'.php');
+                // $class = new $plugin;
+                // $return .= $class->run($data);
+
+                $folderPlugin = $plugin;
+                $fileNamePlugin = '';
+                $filesPlugin = list_files('system/plugins/'.$folderPlugin,1);
+                foreach( $filesPlugin as $directoryFile  )
+                {
+                    
+                    $file = str_replace('system/plugins/'.$folderPlugin.'/','',$directoryFile);
+                    $info = get_info('system/plugins/'.$folderPlugin.'/','Plugin Name',$file);
+                    if( $info !== null && strlen($info) > 0 )
+                    {
+                        $fileNamePlugin = str_replace('.php','',$file);
+                        break;
+                    }
+                }
+                require_once('system/plugins/'.$folderPlugin.'/'.$fileNamePlugin.'.php');
+                $class = new $folderPlugin;
+                $return .= $class->run($data);
+            }
+        }
+        return $return;
+    }
+}
+/*-- End Show Widget --*/
+
+/*-- navMenuRecursive && showMenuRecursive --*/
+//if( !function_exists('navMenuRecursive') )
+//{
+//    
+//    function navMenuRecursive($menu,&$strRec)
+//    {
+//        if(count($menu) > 0){
+//            $strRec .= "<ul>";
+//            foreach ($menu as $key => $value){
+//                 $value['title'] = '<a href="'.$value["url"].'">----|'.$value['title'].'</a>';
+//                 $strRec .= '<li>'.$value["title"];
+//                     if(!empty($value['sub_menu'])){
+//                         navMenuRecursive($value['sub_menu'],$strRec);
+//                     }
+//                 $strRec .= '</li>';
+//            }
+//            $strRec .= "</ul>";
+//        }
+//    }
+//}
+
+//if( !function_exists('showMenuRecursive') )
+//{
+//    function showMenuRecursive($menu)
+//    {
+//        $dataOptionsValue = DB::table('qm_option')->select('option_value')->where('option_name', 'nav_menu')->first();
+//        $arrayValue       = decode_serialize($dataOptionsValue->option_value);
+//        if(isset($arrayValue[$menu])){
+//            navMenuRecursive($arrayValue[$menu],$strRec);
+//            $strRec = str_replace("<ul></ul>", "", $strRec);
+//            echo $strRec;
+//        }
+//    }
+//}
+/*-- End navMenuRecursive && showMenuRecursive --*/
+
+/*-- Function timeAgo --*/
+if( !function_exists('timeAgo') )
+{
+    function timeAgo($time_ago)
+    {
+        //$time_ago = strtotime($time_ago);
+        $cur_time   = time();
+        $time_elapsed   = $cur_time - $time_ago;
+        $seconds    = $time_elapsed ;
+        $minutes    = round($time_elapsed / 60 );
+        $hours      = round($time_elapsed / 3600);
+        $days       = round($time_elapsed / 86400 );
+        $weeks      = round($time_elapsed / 604800);
+        $months     = round($time_elapsed / 2600640 );
+        $years      = round($time_elapsed / 31207680 );
+        // Seconds
+        if($seconds <= 60){
+            return "$seconds giây trước";
+        }
+        //Minutes
+        else if($minutes <=60){
+            return "$minutes phút trước";
+        }
+        //Hours
+        else if($hours <=24){
+            return "$hours giờ trước";
+        }
+        //Days
+        else if($days <= 7){
+            return "$days ngày trước";
+        }
+        //Weeks
+        else if($weeks <= 4.3){
+            return "$weeks tuần trước";
+        }
+        //Months
+        else if($months <=12){
+            return "$months tháng trước";
+        }
+        //Years
+        else{
+            return "$years năm trước";
+        }
+    }
+}
+/*-- End Function timeAgo --*/
+
+/*-- Category In Menu --*/
+if( !function_exists('categoryInMenu') )
+{
+    function categoryInMenu($datas,$nameCheckbox="post_category",$parent=0,$str="",$idCheck=[],$i=0)
+    {
+        foreach($datas as $data)
+        {
+            $id = $data->taxonomy_id;
+            $name = $data->taxonomy_name;
+            if ($data->parent_id == $parent)
+            {
+                $original_name = $name;
+                if( $str ) $name = $str.$name;
+                $checked = '';
+                if( count($idCheck) > 0 && in_array($id,$idCheck) )
+                {
+                    $checked = ' checked ';
+                }
+                if( old($nameCheckbox.'.'.$i) == $id )
+                {
+                    $checked = ' checked ';
+                }
+
+                echo '<li data-id="'.$id.'" data-text="'.$original_name.'" data-order="'.$i.'"><input id="cat-'.$id.'" class="filled-in" type="checkbox" name="'.$nameCheckbox.'['.$i.']" value="'.$id.'"'.$checked.'><label for="cat-'.$id.'">'.$name.'</label></li>';
+                categoryInMenu($datas,$nameCheckbox,$id,$str."--- ",$idCheck);
+            }
+            $i++;
+        }
+    }
+}
+/*-- End Edit Product Category --*/
+
+/*-- ImageRepresent --*/
+if( !function_exists('imageRepresent') )
+{
+    function imageRepresent($attachmentType, $attachmentUrl)
+    {
+        $cdn_domain_image = 'http://mosecdn.com/0';
+        if( $attachmentType == 'word' )
+        {
+            $image = $cdn_domain_image.'/1/attachment/document.png';
+        }
+        elseif( $attachmentType == 'excel' )
+        {
+            $image = $cdn_domain_image.'/1/attachment/spreadsheet.png';
+        }
+        else
+        {
+            $image = $attachmentUrl;
+        }
+        return $image;
+    }
+}
+/*-- End ImageRepresent --*/
+
+/*-- PopupCart --*/
+if( !function_exists('popupCart') )
+{
+    function popupCart()
+    {
+         //CHECK ISSET SESSION CART
+
+        $orderCart   = 0;
+        if(Session::has('quantity') && Session::has('price')){
+            $data       = Session::all();
+            $quantity   = $data['quantity'];
+            $price      = $data['price'];
+            $orderCart  = DB::table('qm_product')
+                            ->join('qm_product_meta','qm_product_meta.product_id','=','qm_product.product_id')
+                            ->select('qm_product.product_id','qm_product.product_title','qm_product.product_slug','qm_product_meta.meta_value')
+                            ->whereIn('qm_product.product_id',array_keys($data['quantity']))
+                             ->where('qm_product_meta.meta_key','product_data')
+                            ->get()->all();
+
+            view()->share('orderCart',$orderCart);
+            view()->share('quantity',$quantity);
+            view()->share('priceHeader',$price);
+        }else{
+            view()->share('orderCart',$orderCart);
+        }
+
+        //END CHECK ISSET SESSION CART
+    }
+}
+/*-- End PopupCart --*/
+
+if( !function_exists('str_slug_post') )
+{
+    function str_slug_post($action_type = '',$post_type='', $slug, $id = '')
+    {
+        $arr_action_type = array('create','update');
+        $arr_post_type = array('page','post');
+        if(!in_array($action_type, $arr_action_type))
+            return false;
+        $slug = str_slug($slug);
+        $slug_dashes = $slug.'-';
+        if($action_type == 'create'){
+            $check = DB::table('qm_post')->where('post_slug',$slug)->where('post_type',$post_type)->get();
+        }else if($action_type == 'update'){
+            $check = DB::table('qm_post')->where('post_slug',$slug)->where('post_type',$post_type)->where('post_id','<>',$id)->get();
+        }
+        $i = 1;
+        while(count($check)>0)
+        {
+            $slug = $slug_dashes.$i;
+            if($action_type == 'create'){
+                $check = DB::table('qm_post')->where('post_slug',$slug)->where('post_type',$post_type)->get();
+            }else if($action_type == 'update'){
+                $check = DB::table('qm_post')->where('post_slug',$slug)->where('post_type',$post_type)->where('post_id','<>',$id)->get();
+            }
+            $i++;
+        }
+        return $slug;
+    }
+}
+
+if( !function_exists('str_slug_product') )
+{
+    function str_slug_product($action_type = '', $slug, $id = '')
+    {
+        $arr_action_type = array('create','update');
+        if(!in_array($action_type, $arr_action_type))
+            return false;
+        $slug = str_slug($slug);
+        $slug_dashes = $slug.'-';
+        if($action_type == 'create'){
+            $check = DB::table('qm_product')->where('product_slug',$slug)->get();
+        }else if($action_type == 'update'){
+            $check = DB::table('qm_product')->where('product_slug',$slug)->where('product_id','<>',$id)->get();
+        }
+        $i = 1;
+        while(count($check)>0)
+        {
+            $slug = $slug_dashes.$i;
+            if($action_type == 'create'){
+                $check = DB::table('qm_product')->where('product_slug',$slug)->get();
+            }else if($action_type == 'update'){
+                $check = DB::table('qm_product')->where('product_slug',$slug)->where('product_id','<>',$id)->get();
+            }
+            $i++;
+        }
+        return $slug;
+    }
+}
+
+/*-- Navigation Data --*/
+if( !function_exists('navigation_data') )
+{
+    function navigation_data($menuData,$primaryClass,$primaryId,$recursive=false,$i=1)
+    {
+        $id = '';
+        if( strlen($primaryId) > 0 )
+        {
+            $id = ' id="'.$primaryId.'"';
+        }
+        $class = ' class="';
+        $childClass = '';
+        $domainUrl = substr(asset('/'), 0, -1);
+        $urlCurrent = Request::url();
+        $segmentCurrent = preg_replace('/\/+/','/',str_replace($domainUrl,'',$urlCurrent));
+        
+        if( !is_string($primaryClass) )
+        {
+            $primaryClass = '';
+        }
+        
+        if( strlen($primaryClass) > 0 && $recursive == false )
+        {
+            $class .= $primaryClass;
+        }
+        
+        if( $recursive )
+        {
+            $class .= 'menu-child child-lv-'.$i;
+        }
+        
+        $class .= '"';
+        
+        $string = '<ul'.$id.$class.'>';
+        
+        foreach( $menuData as $data )
+        {
+            $subMenu = isset($data['sub_menu']) ? $data['sub_menu'] : null;
+            $targetAttr = '';
+            $url = $data['url'];
+            $classActive = '';
+            
+            // Custom Menu
+            if( preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i",$data['url']) || ( $data['url'] == '#' ) )
+            {
+                if( strpos($url,$domainUrl) === false )
+                {
+                    $targetAttr = 'target="_blank"';
+                }
+                
+                if( $urlCurrent == $url )
+                {
+                    $classActive = ' class="active"';
+                }
+            }
+            elseif( strpos($data['url'],'product-') !== false ) // Product Category
+            {
+                $id = str_replace('product-','',$data['url']);
+                $slug = DB::table('qm_taxonomy')->where('taxonomy_type','product_category')->where('taxonomy_id',$id)->first()->slug;
+                $url = '/collections/'.$slug;
+                
+                if( $segmentCurrent == $url )
+                {
+                    $classActive = ' class="active"';
+                }
+            }
+            elseif( strpos($data['url'],'page-') !== false ) // Page
+            {
+                $id = str_replace('page-','',$data['url']);
+                $slug = DB::table('qm_post')->where('post_type','page')->where('post_id',$id)->first()->post_slug;
+                $url = '/pages/'.$slug;
+                
+                if( $segmentCurrent == $url )
+                {
+                    $classActive = ' class="active"';
+                }
+            }
+            elseif( strpos($data['url'],'post-') !== false ) // Post Category
+            {
+                $id = str_replace('post-','',$data['url']);
+                $slug = DB::table('qm_taxonomy')->where('taxonomy_type','post_category')->where('taxonomy_id',$id)->first()->taxonomy_slug;
+
+                $url = '/'.$slug;
+                
+                if( $segmentCurrent == $url )
+                {
+                    $classActive = ' class="active"';
+                }
+            }
+            
+            $string .= '<li'.$classActive.'>';
+            $string .= '<a href="'.$url.'" title="'.$data['title'].'" '.$targetAttr.'>'.$data['title'].'</a>';
+            
+            if( $subMenu !== null )
+            {
+                if( $recursive )
+                {
+                    $i++;
+                }
+                $string .= navigation_data($subMenu,'','',true,$i);
+            }
+            
+            $string .= '</li>';
+        }
+        
+        $string .= '</ul>';
+        
+        return $string;
+    }
+}
+/*-- End Navigation Data --*/
+
+/*-- Navigation Menu --*/
+if( !function_exists('navigation_menu') )
+{
+    function navigation_menu($position='',$primaryClass='',$primaryId='')
+    {
+        $active_template = DB::table('qm_option')->where([
+            'option_name' => 'active_template',
+        ])->first()->option_value;
+        require_once('system/application/views/frontend/'.$active_template.'/function.php');
+        if( function_exists('resgister_navigation') )
+        {
+            $registerNavigation = resgister_navigation();
+            if( !isset($registerNavigation[$position]) )
+            {
+                return null;
+            }
+            else
+            {
+                $navigation_data = decode_serialize(DB::table('qm_option')->where('option_name','navigation_data')->first()->option_value);
+                if( !is_array($navigation_data) )
+                {
+                    $navigation_data = [];
+                }
+                $navigation_load = decode_serialize(DB::table('qm_option')->where('option_name','navigation_load')->first()->option_value);
+                if( !is_array($navigation_load) )
+                {
+                    $navigation_load = [];
+                }
+                
+                if( !isset($navigation_load[$position]) || count($navigation_data) == 0 )
+                {
+                    return null;
+                }
+                
+                $slugMenuName = $navigation_load[$position];
+                $menuData = $navigation_data[$slugMenuName]['menu_data'];
+                if( count($menuData) == 0 )
+                {
+                    return null;
+                }
+                
+                return navigation_data($menuData,$primaryClass,$primaryId);
+            }
+        }
+        else
+        {
+            return null;
+        }
+    }
+}
+/*-- End Navigation Menu --*/
+
+/*-- Get User Data --*/
+if( !function_exists('getUserData') )
+{
+    function getUserData()
+	{
+	    $userData = DB::table('qm_user')
+	    ->join('qm_user_meta','qm_user_meta.user_id','=','qm_user.user_id')
+	    ->where('qm_user.user_id',Session::get('user_id'))
+	    ->first();
+
+	    return $userData;
+	}
+}
+/*-- End Get User Data --*/
+
+/*-- Delete Directory --*/
+if( !function_exists('deleteDir') )
+{
+    function deleteDir($dirPath)
+    {
+        if( !is_dir($dirPath) )
+        {
+            if( file_exists($dirPath) !== false )
+            {
+                unlink($dirPath);
+            }
+            return;
+        }
+
+        if( $dirPath[strlen($dirPath) - 1] != '/' )
+        {
+            $dirPath .= '/';
+        }
+
+        $files = glob($dirPath . '*', GLOB_MARK);
+        foreach( $files as $file )
+        {
+            if( is_dir($file) )
+            {
+                deleteDir($file);
+            }
+            else
+            {
+                unlink($file);
+            }
+        }
+
+        rmdir($dirPath);
+    }
+}
+/*-- End Delete Directory --*/
+
+if( !function_exists('tableSearchForm') )
+{
+    function tableSearchForm($search = '', $before = '', $after = '', $bind = '')
+    {
+        $html = '';
+        $html .= $before;
+        if($bind){$bind=' data-bind="'.$bind.'"';}
+        $html .= '<div class="form-group"><div class="search-form"><div class="input-group"><label class="sr-only">Search</label><input name="search" type="text" class="form-control na-search-input" value="'.$search.'" data-bind="keypress: na-search-btn" /><span class="input-group-btn"><button class="btn btn-search na-search-btn" type="submit"'.$bind.' data-model="na-search-btn"><i class="font-icon material-icons md-18">search</i></button></span></div></div></div>';
+        $html .= $after;
+        return $html;
+    }
+}
+
+if( !function_exists('tableActionForm') )
+{
+    function tableActionForm($arr = '', $before = '', $after = '', $bind = '')
+    {
+        $html = ''; $option = '';
+        $html .= $before;
+        if(!$arr){
+            $option = '<option selected="selected" value="0">Chọn hành động</option><option value="edit">Chỉnh sửa</option><option value="trash">Xóa</option>';
+        }else {
+            $option = '<option selected="selected" value="0">Chọn hành động</option>';
+            foreach ($arr as $key => $value) {
+                $option .= '<option value="'.$key.'">'.$value.'</option>';
+            }
+        }
+        if($bind){$bind=' data-bind="'.$bind.'"';}
+        $html .= '<div class="form-group"><select name="select_action" class="form-control na-select-action">'.$option.'</select></div> <div class="form-group"><button type="submit" class="btn btn-secondary na-select-btn"'.$bind.'>Áp dụng</button></div>';
+        $html .= $after;
+        return $html;
+    }
+}
+
+if( !function_exists('media_modal') )
+{
+    function media_modal($type='')
+    {
+        $html = '';
+        $html .= '<div id="media-modal" data-type="'.$type.'" class="modal fade" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg"><div class="modal-content">';
+        $html .= '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title">Thư viện ảnh</h4></div>';
+        $html .= '<div class="media-modal-tab m-b-1"><ul class="nav nav-tabs clearfix" role="tablist"><li class="nav-item"><a href="#media-modal-upload" class="nav-link font-lg-size" aria-controls="media-upload" role="tab" data-toggle="tab">Tải ảnh</a></li><li class="nav-item"><a href="#media-modal-list" class="nav-link font-lg-size active" aria-controls="media-list" role="tab" data-toggle="tab">Thư viện</a></li></ul></div>';
+        $html .= '<div class="modal-body"><div class="tab-content">';
+        $html .= '<div id="media-modal-upload" role="tabpanel" class="tab-pane"><div id="plupload-upload-ui"><div id="drag-drop-area" class="drop-zone"><div class="drag-drop-inside"><i class="font-icon fa fa-cloud-upload"></i><p class="drag-drop-info">Thả vào tập tin để tải lên</p><p class="drag-drop-buttons"><input id="plupload-browse-button" type="button" value="Chọn tập tin" class="btn btn-primary" /></p></div></div></div></div>';
+        $html .= '<script type="text/javascript">var domain = "'.str_replace("/","\/",url("/")) .'";var token = $("#page_token").val();var mUploaderInit = {runtimes:"html5,flash,silverlight,html4",browse_button:"plupload-browse-button",container:"plupload-upload-ui",drop_element:"drag-drop-area",file_data_name:"file",url:domain+"\/admin\/attachment\/create",flash_swf_url:"http:\/\/mosecdn.com\/0\/0\/plupload\/Moxie.swf",silverlight_xap_url:"http:\/\/mosecdn.com\/0\/0\/plupload\/Moxie.xap",multipart_params:{_token:""+token+"",upload_type:"plupload",upload_page:"post"},filters:{max_file_size:"5242880b",mime_types: [{title:"Image files", extensions : "jpg,gif,png,jpeg"}]}}</script>';
+        $html .= '<div id="media-modal-list" role="tabpanel" class="tab-pane active"><div class="form-group"><div class="input-group"><input type="text" class="form-control modal-search" value="" data-bind="keypress: modal-search" /><span class="input-group-btn"><button class="btn btn-secondary" type="button" data-bind="click: Modal.SearchImage" data-model="modal-search" style="height: 35px !important;"><i class="font-icon material-icons md-18">search</i></button></span></div></div><div class="modal-list-data" data-bind="load: Modal.ChooseImage"></div></div>';
+        $html .= '</div></div>';
+        $html .= '<div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button> <button id="set-image-btn" type="button" class="btn btn-primary waves-effect" data-bind="click: Modal.SetImage">Chọn hình ảnh</button></div>';
+        $html .= '</div></div></div>';
+        return $html;
+    }
+}
+
+if( !function_exists('get_cat_product') )
+{
+    function get_cat_product( $product_id = '')
+    {
+        $html = '';
+        $cat = DB::table('qm_product_relationships')->join('qm_product','qm_product.product_id','=','qm_product_relationships.product_id')
+                    ->join('qm_taxonomy','qm_taxonomy.taxonomy_id','=','qm_product_relationships.taxonomy_id')
+                    ->select('qm_taxonomy.taxonomy_name', 'qm_taxonomy.taxonomy_slug')
+                    ->where('qm_product.product_id',$product_id)->where('qm_taxonomy.taxonomy_type','product_category')
+                    ->groupBy('qm_taxonomy.taxonomy_name')
+                    ->get();
+        if(count($cat)>0){
+            foreach ($cat as $v){
+                $html .= '<a href="'.url('admin/product?category='.$v->taxonomy_slug).'">'.$v->taxonomy_name.'</a>'.',';
+            }
+        }
+        return substr($html,0, -1);
+    }
+}
+
+if( !function_exists('get_cat_post') )
+{
+    function get_cat_post( $post_id = '')
+    {
+        $html = '';
+        $cat = DB::table('qm_post_relationships')->join('qm_post','qm_post.post_id','=','qm_post_relationships.post_id')
+                    ->join('qm_taxonomy','qm_taxonomy.taxonomy_id','=','qm_post_relationships.taxonomy_id')
+                    ->select('qm_taxonomy.taxonomy_name', 'qm_taxonomy.taxonomy_slug')
+                    ->where('qm_post.post_id',$post_id)->where('qm_taxonomy.taxonomy_type','post_category')
+                    ->groupBy('qm_taxonomy.taxonomy_name')
+                    ->get();
+        if(count($cat)>0){
+            foreach ($cat as $v){
+                $html .= '<a href="'.url('admin/post?category='.$v->taxonomy_slug).'">'.$v->taxonomy_name.'</a>'.',';
+            }
+        }
+        return substr($html,0, -1);
+    }
+}
+
+if( !function_exists('get_template_order_code') )
+{
+    function get_template_order_code( $order_code = '')
+    {
+        $html = '';
+        $check = DB::table('qm_order')->where('order_code', $order_code)->first();
+        if($check){
+            $order_prefix = DB::table('qm_option')->where('option_name','order_prefix')->value('option_value');
+            $order_suffix = DB::table('qm_option')->where('option_name','order_suffix')->value('option_value');
+            $html .= $order_prefix.$order_code.$order_suffix;
+        }
+        return $html;
+    }
+}
+
+if( !function_exists('promotionFace') )
+{
+	function promotionFace($productId,$variantId=null)
+	{
+		$time = time();
+		$discountPercent = 0;
+		$discountPriceNew = 0;
+		$discountPriceOld = 0;
+		$discountPrice = 0;
+		$discountCheck = 0;
+
+		if( $variantId == null )
+		{
+			$product = DB::table('qm_product')
+				->join('qm_variant','qm_variant.product_id','=','qm_product.product_id')
+				->where('qm_product.product_id',$productId)
+				->where('qm_product.product_status','public')
+				->first();
+		}
+		else
+		{
+			$product = DB::table('qm_product')
+				->join('qm_variant','qm_variant.product_id','=','qm_product.product_id')
+				->where('qm_product.product_id',$productId)
+				->where('qm_product.product_status','public')
+				->where('qm_variant.variant_id',$variantId)
+				->first();
+		}
+
+		if( count($product) != 1 ) return null;
+
+		$groupProducts = DB::table('qm_product_relationships')
+			->join('qm_taxonomy','qm_taxonomy.taxonomy_id','=','qm_product_relationships.taxonomy_id')
+			->where('qm_product_relationships.product_id',$productId)
+			->where('qm_taxonomy.taxonomy_type','product_group')
+			->pluck('qm_taxonomy.taxonomy_id')
+			->toArray(); // If product haven't group then $groupProducts is empty array
+
+		// Discount Type == 2
+		//- Discount Offer == 3 
+		$discounts = DB::table('qm_discount')
+			->where('discount_type',2)
+			->where('discount_offer',3)
+			->where('discount_status',1)
+			->where('offer_option',1)
+			->where('relationship_title','')
+			->whereIn('relationship_id',$groupProducts)
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->get();
+
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+
+		foreach( $discounts as $discount )
+		{
+			if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+			{
+				$discountPriceAmount = $discount->discount_take;
+			}
+
+			if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+			{
+				$discountPricePercentage = $discount->discount_take;
+			}
+		}
+		//- End
+
+		$discountPrice = $product->price_new * $discountPricePercentage / 100;
+		if( $discountPrice < $discountPriceAmount ) $discountPrice = $discountPriceAmount;
+
+		//- Discount Offer == 4 
+		$discounts = DB::table('qm_discount')
+			->where('discount_type',2)
+			->where('discount_offer',4)
+			->where('discount_status',1)
+			->where('offer_option',1)
+			->where('relationship_title','')
+			->where('relationship_id',$productId)
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->get();
+
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+
+		foreach( $discounts as $discount )
+		{
+			if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+			{
+				$discountPriceAmount = $discount->discount_take;
+			}
+
+			if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+			{
+				$discountPricePercentage = $discount->discount_take;
+			}
+		}
+		//- End
+
+		$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+		if( $discountPrice < $_discountPrice ) $discountPrice = $_discountPrice;
+		if( $discountPrice < $discountPriceAmount ) $discountPrice = $discountPriceAmount;
+		// End
+
+		
+		if( $discountPrice > 0 ) $discountCheck = 1;
+		if( $discountPrice >= $product->price_new ) $discountPrice = $product->price_new;
+		if( $product->price_new > 0 ) $discountPercent = floor($discountPrice * 100 / $product->price_new);
+		$discountPriceNew = $product->price_new - $discountPrice;
+		$discountPriceOld = $product->price_old;
+		if( $discountPriceNew < $product->price_new ) $discountPriceOld = $product->price_new;
+		
+		return [
+			'percentage' => $discountPercent,
+			'price_new' => $discountPriceNew,
+			'price_old' => $discountPriceOld,
+			'check_discount' => $discountCheck,
+		];
+	}
+}
+if( !function_exists('promotionOrder') )
+{
+	function promotionOrder($variants,$discountCode=null,$idCustomer=null)
+	{
+		$time = time();
+		$discountCode = 'RZMASTFZS1ZO';	
+		$totalMoneyInOrder = 0;
+		$resultVariant = [];
+		$arrayGroupProduct = [];
+
+		// ---------------------------------------
+		// Discount for variant 
+		// ---------------------------------------
+		foreach( $variants as $variant )
+		{
+			$product = DB::table('qm_product')
+				->join('qm_variant','qm_variant.product_id','=','qm_product.product_id')
+				->where('qm_product.product_status','public')
+				->where('qm_variant.variant_id',$variant['variant_id'])
+				->first();
+
+			if( $product )
+			{
+				$discountPrice = 0;
+				$discountTitle = '';
+
+				$groupProducts = DB::table('qm_product_relationships')
+					->join('qm_taxonomy','qm_taxonomy.taxonomy_id','=','qm_product_relationships.taxonomy_id')
+					->where('qm_product_relationships.product_id',$product->product_id)
+					->where('qm_taxonomy.taxonomy_type','product_group')
+					->pluck('qm_taxonomy.taxonomy_id')
+					->toArray(); // If product haven't group then $groupProducts is empty array
+
+				if( count($groupProducts) > 0 ) $arrayGroupProduct = array_merge($arrayGroupProduct,$groupProducts);
+
+				// Discount Type == 2 && Discount Offer == 3
+				$discounts = DB::table('qm_discount')
+					->where('discount_type',2)
+					->where('discount_offer',3)
+					->where('discount_status',1)
+					->where('offer_option','<=',$variant['quantity'])
+					->where('relationship_title','')
+					->whereIn('relationship_id',$groupProducts)
+					->where('discount_date_start','<=',$time)
+					->where(function($query) use ($time){
+						$query->where('discount_date_end','>=',$time)
+						->orWhere('discount_date_end','<=',0);
+					})
+					->get();
+
+				$discountPriceAmount = 0; // Largest Discount Price Amount
+				$discountPricePercentage = 0; // Largest Discount Price Percentage
+				$discountTitleAmount = '';
+				$discountTitlePercentage = '';
+
+				foreach( $discounts as $discount )
+				{
+					if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+					{
+						$discountPriceAmount = $discount->discount_take;
+						$discountTitleAmount = $discount->discount_title;
+					}
+
+					if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+					{
+						$discountPricePercentage = $discount->discount_take;
+						$discountTitlePercentage = $discount->discount_title;
+					}
+				}
+				//- End
+
+				$discountPrice = $product->price_new * $discountPricePercentage / 100;
+				$discountTitle = $discountTitlePercentage;
+				if( $discountPrice < $discountPriceAmount )
+				{
+					$discountPrice = $discountPriceAmount;
+					$discountTitle = $discountTitleAmount;
+				}
+
+				// Discount Type == 2 && Discount Offer == 4
+				$discounts = DB::table('qm_discount')
+					->where('discount_type',2)
+					->where('discount_offer',4)
+					->where('discount_status',1)
+					->where('offer_option','<=',$variant['quantity'])
+					->where('relationship_title','')
+					->where('relationship_id',$product->product_id)
+					->where('discount_date_start','<=',$time)
+					->where(function($query) use ($time){
+						$query->where('discount_date_end','>=',$time)
+						->orWhere('discount_date_end','<=',0);
+					})
+					->get();
+
+				$discountPriceAmount = 0; // Largest Discount Price Amount
+				$discountPricePercentage = 0; // Largest Discount Price Percentage
+				$discountTitleAmount = '';
+				$discountTitlePercentage = '';
+
+				foreach( $discounts as $discount )
+				{
+					if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+					{
+						$discountPriceAmount = $discount->discount_take;
+						$discountTitleAmount = $discount->discount_title;
+					}
+
+					if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+					{
+						$discountPricePercentage = $discount->discount_take;
+						$discountTitlePercentage = $discount->discount_title;
+					}
+				}
+				//- End
+
+				$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+				if( $discountPrice < $_discountPrice )
+				{
+					$discountPrice = $_discountPrice;
+					$discountTitle = $discountTitlePercentage;
+				}
+				if( $discountPrice < $discountPriceAmount )
+				{
+					$discountPrice = $discountPriceAmount;
+					$discountTitle = $discountTitleAmount;
+				}
+
+				// Discount Type == 1 && Discount Offer == 3 && Offer Option == 2
+				$discount = DB::table('qm_discount')
+					->where('discount_type',1)
+					->where('discount_title',$discountCode)
+					->where('discount_offer',3)
+					->where('discount_status',1)
+					->where('offer_option',2)
+					->where('relationship_title','')
+					->whereIn('relationship_id',$groupProducts)
+					->where(function($query){
+						$query->whereRaw('discount_limit_start > discount_limit_end')
+						->orWhere('discount_limit_start',0);
+					})
+					->where('discount_date_start','<=',$time)
+					->where(function($query) use ($time){
+						$query->where('discount_date_end','>=',$time)
+						->orWhere('discount_date_end','<=',0);
+					})
+					->first();
+
+				$discountPriceAmount = 0; // Largest Discount Price Amount
+				$discountPricePercentage = 0; // Largest Discount Price Percentage
+				$_discountTitle = '';
+				$__discountPrice = $discountPrice;
+
+				if( $discount )
+				{
+					$_discountTitle = $discount->discount_title;
+
+					if( $discount->discount_option == 'amount' ) $discountPriceAmount = $discount->discount_take;
+
+					if( $discount->discount_option == 'percentage' ) $discountPricePercentage = $discount->discount_take;
+
+					if( $discount->promotion_allow == 0 )
+					{
+						$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+						if( $__discountPrice < $_discountPrice ) $__discountPrice = $_discountPrice;
+						if( $__discountPrice < $discountPriceAmount ) $__discountPrice = $discountPriceAmount;
+					}
+					else // $discount->promotion_allow == 1
+					{
+						$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+						if( $__discountPrice < $discountPriceAmount ) $__discountPrice = $discountPriceAmount;
+						$__discountPrice += $_discountPrice;
+					}
+				}
+
+				if( $discountPrice < $__discountPrice )
+				{
+					$discountPrice = $__discountPrice;
+					$discountTitle = $_discountTitle;
+				}
+				// End
+				
+				// Discount Type == 1 && Discount Offer == 4 && Offer Option == 2
+				$discount = DB::table('qm_discount')
+					->where('discount_type',1)
+					->where('discount_title',$discountCode)
+					->where('discount_offer',4)
+					->where('discount_status',1)
+					->where('offer_option',2)
+					->where('relationship_title','')
+					->where('relationship_id',$product->product_id)
+					->where(function($query){
+						$query->whereRaw('discount_limit_start > discount_limit_end')
+						->orWhere('discount_limit_start',0);
+					})
+					->where('discount_date_start','<=',$time)
+					->where(function($query) use ($time){
+						$query->where('discount_date_end','>=',$time)
+						->orWhere('discount_date_end','<=',0);
+					})
+					->first();
+
+				$discountPriceAmount = 0; // Largest Discount Price Amount
+				$discountPricePercentage = 0; // Largest Discount Price Percentage
+				$_discountTitle = '';
+				$__discountPrice = $discountPrice;
+
+				if( $discount )
+				{
+					$_discountTitle = $discount->discount_title;
+
+					if( $discount->discount_option == 'amount' ) $discountPriceAmount = $discount->discount_take;
+
+					if( $discount->discount_option == 'percentage' ) $discountPricePercentage = $discount->discount_take;
+
+					if( $discount->promotion_allow == 0 )
+					{
+						$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+						if( $__discountPrice < $_discountPrice ) $__discountPrice = $_discountPrice;
+						if( $__discountPrice < $discountPriceAmount ) $__discountPrice = $discountPriceAmount;
+					}
+					else // $discount->promotion_allow == 1
+					{
+						$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+						if( $_discountPrice < $discountPriceAmount ) $_discountPrice = $discountPriceAmount;
+						$__discountPrice += $_discountPrice;
+					}
+				}
+
+				if( $discountPrice < $__discountPrice )
+				{
+					$discountPrice = $__discountPrice;
+					$discountTitle = $_discountTitle;
+				}
+				// End
+
+				if( $discountPrice > $product->price_new ) $discountPrice = $product->price_new;
+				$resultVariant[$product->variant_id]['discountTitle'] = $discountTitle;
+				$resultVariant[$product->variant_id]['originalPrice'] = $product->price_new;
+				$resultVariant[$product->variant_id]['quantity'] = $variant['quantity'];
+				$resultVariant[$product->variant_id]['discountPrice'] = $discountPrice;
+				$resultVariant[$product->variant_id]['prices'] = $product->price_new - $discountPrice;
+				$totalMoneyInOrder += ( $product->price_new - $discountPrice ) * $variant['quantity'];
+			}
+		}
+
+		// ---------------------------------------
+		// Discount for order
+		// ---------------------------------------
+
+		$discountPriceInOrder = 0;
+		$discountTitle = '';
+
+		// Discount Type == 2 && Discount Offer == 1
+		$discounts = DB::table('qm_discount')
+			->where('discount_type',2)
+			->where('discount_offer',1)
+			->where('discount_status',1)
+			->where('relationship_title','')
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->get();
+
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+		$discountTitleAmount = '';
+		$discountTitlePercentage = '';
+
+		foreach( $discounts as $discount )
+		{
+			if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+			{
+				$discountPriceAmount = $discount->discount_take;
+				$discountTitleAmount = $discount->discount_title;
+			}
+
+			if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+			{
+				$discountPricePercentage = $discount->discount_take;
+				$discountTitlePercentage = $discount->discount_title;
+			}
+		}
+
+		$discountPriceInOrder = $totalMoneyInOrder * $discountPricePercentage / 100;
+		$discountTitle = $discountTitlePercentage;
+		if( $discountPriceInOrder < $discountPriceAmount )
+		{
+			$discountPriceInOrder = $discountPriceAmount;
+			$discountTitle = $discountTitleAmount;
+		}
+		// End
+
+		// Discount Type == 1 && Discount Offer == 1
+		$discount = DB::table('qm_discount')
+			->where('discount_type',1)
+			->where('discount_title',$discountCode)
+			->where('discount_offer',1)
+			->where('discount_status',1)
+			->where('relationship_title','')
+			->where(function($query){
+				$query->whereRaw('discount_limit_start > discount_limit_end')
+				->orWhere('discount_limit_start',0);
+			})
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->first();
+		
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+		$_discountTitle = '';
+		$__discountPriceInOrder = $discountPriceInOrder;
+
+		if( $discount )
+		{
+			$_discountTitle = $discount->discount_title;
+
+			if( $discount->discount_option == 'amount' )
+			{
+				$discountPriceAmount = $discount->discount_take;
+			}
+
+			if( $discount->discount_option == 'percentage' )
+			{
+				$discountPricePercentage = $discount->discount_take;
+			}
+
+			if( $discount->promotion_allow == 0 )
+			{
+				$_discountPriceInOrder = $totalMoneyInOrder * $discountPricePercentage / 100;
+				if( $__discountPriceInOrder < $_discountPriceInOrder ) $__discountPriceInOrder = $_discountPriceInOrder;
+				if( $__discountPriceInOrder < $discountPriceAmount ) $__discountPriceInOrder = $discountPriceAmount;
+			}
+			else // $discount->promotion_allow == 1
+			{
+				$_discountPriceInOrder = $totalMoneyInOrder * $discountPricePercentage / 100;
+				if( $_discountPriceInOrder < $discountPriceAmount ) $_discountPriceInOrder = $discountPriceAmount;
+				$__discountPriceInOrder += $_discountPriceInOrder;
+			}
+		}
+
+		if( $discountPriceInOrder < $__discountPriceInOrder )
+		{
+			$discountPriceInOrder = $__discountPriceInOrder;
+			$discountTitle = $_discountTitle;
+		}
+		// End
+
+		// Discount Type == 2 && Discount Offer == 2
+		$discounts = DB::table('qm_discount')
+			->where('discount_type',2)
+			->where('discount_offer',2)
+			->where('discount_status',1)
+			->where('money_over','<=',$totalMoneyInOrder)
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->get();
+
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+		$discountTitleAmount = '';
+		$discountTitlePercentage = '';
+
+		foreach( $discounts as $discount )
+		{
+			if( $discount->discount_option == 'amount' && $discount->discount_take > $discountPriceAmount )
+			{
+				$discountPriceAmount = $discount->discount_take;
+				$discountTitleAmount = $discount->discount_title;
+			}
+
+			if( $discount->discount_option == 'percentage' && $discount->discount_take > $discountPricePercentage )
+			{
+				$discountPricePercentage = $discount->discount_take;
+				$discountTitlePercentage = $discount->discount_title;
+			}
+		}
+		//- End
+
+		$_discountPriceInOrder = $product->price_new * $discountPricePercentage / 100;
+		if( $discountPriceInOrder < $_discountPriceInOrder )
+		{
+			$discountPriceInOrder = $_discountPriceInOrder;
+			$discountTitle = $discountTitlePercentage;
+		}
+		if( $discountPriceInOrder < $discountPriceAmount )
+		{
+			$discountPriceInOrder = $discountPriceAmount;
+			$discountTitle = $discountTitleAmount;
+		}
+		// End
+
+		// Discount Type == 1 && Discount Offer == 2
+		$discount = DB::table('qm_discount')
+			->where('discount_type',1)
+			->where('discount_title',$discountCode)
+			->where('discount_offer',2)
+			->where('discount_status',1)
+			->where('money_over','<=',$totalMoneyInOrder)
+			->where(function($query){
+				$query->whereRaw('discount_limit_start > discount_limit_end')
+				->orWhere('discount_limit_start',0);
+			})
+			->where('discount_date_start','<=',$time)
+			->where(function($query) use ($time){
+				$query->where('discount_date_end','>=',$time)
+				->orWhere('discount_date_end','<=',0);
+			})
+			->first();
+		
+		$discountPriceAmount = 0; // Largest Discount Price Amount
+		$discountPricePercentage = 0; // Largest Discount Price Percentage
+		$_discountTitle = '';
+		$__discountPriceInOrder = $discountPriceInOrder;
+
+		if( $discount )
+		{
+			$_discountTitle = $discount->discount_title;
+
+			if( $discount->discount_option == 'amount' )
+			{
+				$discountPriceAmount = $discount->discount_take;
+			}
+
+			if( $discount->discount_option == 'percentage' )
+			{
+				$discountPricePercentage = $discount->discount_take;
+			}
+
+			if( $discount->promotion_allow == 0 )
+			{
+				$_discountPriceInOrder = $totalMoneyInOrder * $discountPricePercentage / 100;
+				if( $__discountPriceInOrder < $_discountPriceInOrder ) $__discountPriceInOrder = $_discountPriceInOrder;
+				if( $__discountPriceInOrder < $discountPriceAmount ) $__discountPriceInOrder = $discountPriceAmount;
+			}
+			else // $discount->promotion_allow == 1
+			{
+				$_discountPriceInOrder = $totalMoneyInOrder * $discountPricePercentage / 100;
+				if( $_discountPriceInOrder < $discountPriceAmount ) $_discountPriceInOrder = $discountPriceAmount;
+				$__discountPriceInOrder += $_discountPriceInOrder;
+			}
+		}
+
+		if( $discountPriceInOrder < $__discountPriceInOrder )
+		{
+			$discountPriceInOrder = $__discountPriceInOrder;
+			$discountTitle = $_discountTitle;
+		}
+		// End
+
+		// Discount Type == 1 && Discount Offer == 3 && Offer Option == 1
+		// $discount = DB::table('qm_discount')
+		// 	->where('discount_type',1)
+		// 	->where('discount_title',$discountCode)
+		// 	->where('discount_offer',3)
+		// 	->where('discount_status',1)
+		// 	->where('offer_option',1)
+		// 	->where('relationship_title','')
+		// 	->whereIn('relationship_id',$arrayGroupProduct)
+		// 	->where(function($query){
+		// 		$query->whereRaw('discount_limit_start > discount_limit_end')
+		// 		->orWhere('discount_limit_start',0);
+		// 	})
+		// 	->where('discount_date_start','<=',$time)
+		// 	->where(function($query) use ($time){
+		// 		$query->where('discount_date_end','>=',$time)
+		// 		->orWhere('discount_date_end','<=',0);
+		// 	})
+		// 	->first();
+
+		// $discountPriceAmount = 0; // Largest Discount Price Amount
+		// $discountPricePercentage = 0; // Largest Discount Price Percentage
+		// $_discountTitle = '';
+		// $__discountPrice = $discountPrice;
+
+		// if( $discount )
+		// {
+		// 	$_discountTitle = $discount->discount_title;
+
+		// 	if( $discount->discount_option == 'amount' ) $discountPriceAmount = $discount->discount_take;
+
+		// 	if( $discount->discount_option == 'percentage' ) $discountPricePercentage = $discount->discount_take;
+
+		// 	if( $discount->promotion_allow == 0 )
+		// 	{
+		// 		$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+		// 		if( $__discountPrice < $_discountPrice ) $__discountPrice = $_discountPrice;
+		// 		if( $__discountPrice < $discountPriceAmount ) $__discountPrice = $discountPriceAmount;
+		// 	}
+		// 	else // $discount->promotion_allow == 1
+		// 	{
+		// 		$_discountPrice = $product->price_new * $discountPricePercentage / 100;
+		// 		if( $__discountPrice < $discountPriceAmount ) $__discountPrice = $discountPriceAmount;
+		// 		$__discountPrice += $_discountPrice;
+		// 	}
+		// }
+
+		// if( $discountPrice < $__discountPrice )
+		// {
+		// 	$discountPrice = $__discountPrice;
+		// 	$discountTitle = $_discountTitle;
+		// }
+		// End
+
+		$resultVariant['discountTitle'] = $discountTitle;
+		$resultVariant['originaltotalPriceInOrder'] = $totalMoneyInOrder;
+		$resultVariant['discountPriceInOrder'] = $discountPriceInOrder;
+		$resultVariant['totalPriceInOrder'] = $totalMoneyInOrder - $discountPriceInOrder;
+
+		return $resultVariant;
+
+	}
+}
+
+
+?>
